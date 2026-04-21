@@ -37,7 +37,7 @@ async function refreshAccessToken(): Promise<string | null> {
   const refresh = tokenStorage.getRefresh();
   if (!refresh) return null;
   try {
-    const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
+    const { data } = await axios.post(`${API_BASE_URL}/users/auth/token/refresh/`, { refresh });
     const newAccess = data.access as string;
     tokenStorage.set(newAccess, data.refresh ?? refresh);
     return newAccess;
