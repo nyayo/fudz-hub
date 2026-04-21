@@ -14,6 +14,8 @@ import Menu from "./pages/Menu";
 import Categories from "./pages/Categories";
 import Promotions from "./pages/Promotions";
 import Settings from "./pages/Settings";
+import Deliveries from "./pages/Deliveries";
+import Reviews from "./pages/Reviews";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -44,6 +46,8 @@ const App = () => (
               <Route path="/categories" element={<Categories />} />
               <Route path="/promotions" element={<Promotions />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/deliveries" element={<Deliveries />} />
+              <Route path="/reviews" element={<Reviews />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
