@@ -12,6 +12,8 @@ import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
 import Menu from "./pages/Menu";
 import Categories from "./pages/Categories";
+import Promotions from "./pages/Promotions";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -40,6 +42,8 @@ const App = () => (
               <Route path="/orders/:id" element={<OrderDetail />} />
               <Route path="/menu" element={<Menu />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/promotions" element={<Promotions />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
