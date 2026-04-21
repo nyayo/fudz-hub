@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "@/hooks/use-toast";
-import { requestOtp, verifyOtp, useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { requestOtp, verifyOtp } from "@/services/authService";
 import { extractApiError } from "@/lib/api";
 
 type Step = "email" | "otp";
