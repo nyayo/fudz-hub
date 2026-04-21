@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +27,9 @@ import {
   listCategories,
   updateMenuItem,
 } from "@/services/menuService";
+import { uploadMenuItemImage } from "@/services/restaurantService";
 import type { MenuItem, MenuItemPayload } from "@/types/menu";
+import { Upload } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -49,6 +51,7 @@ const empty: MenuItemPayload = {
 export function MenuItemDialog({ open, onOpenChange, item }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<MenuItemPayload>(empty);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const { data: categories } = useQuery({
     queryKey: ["categories", "all"],
@@ -85,6 +88,16 @@ export function MenuItemDialog({ open, onOpenChange, item }: Props) {
     },
     onError: (err) =>
       toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadMenuItemImage(item!.id, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["menu-items"] });
+      toast({ title: "Image uploaded" });
+    },
+    onError: (err) =>
+      toast({ title: "Upload failed", description: extractApiError(err), variant: "destructive" }),
   });
 
   return (
@@ -186,6 +199,33 @@ export function MenuItemDialog({ open, onOpenChange, item }: Props) {
               onCheckedChange={(v) => setForm({ ...form, is_featured: v })}
             />
           </div>
+          {item && (
+            <div className="space-y-2">
+              <Label>Images</Label>
+              <div className="flex items-center gap-3 flex-wrap">
+                {item.images?.map((img) => (
+                  <div key={img.id} className="h-16 w-16 overflow-hidden rounded-md border bg-muted">
+                    <img src={img.image} alt={item.title} className="h-full w-full object-cover" />
+                  </div>
+                ))}
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadMutation.mutate(f);
+                    e.target.value = "";
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => fileInput.current?.click()} disabled={uploadMutation.isPending}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploadMutation.isPending ? "Uploading..." : "Add image"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

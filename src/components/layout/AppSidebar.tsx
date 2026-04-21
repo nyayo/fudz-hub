@@ -7,6 +7,7 @@ import {
   Users,
   BarChart3,
   Settings,
+  Percent,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -31,6 +32,7 @@ const mainItems = [
 const catalogItems = [
   { title: "Menu", url: "/menu", icon: UtensilsCrossed },
   { title: "Categories", url: "/categories", icon: Tags },
+  { title: "Promotions", url: "/promotions", icon: Percent },
 ];
 
 const manageItems = [

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
 import { createCategory, updateCategory } from "@/services/menuService";
+import { uploadCategoryImage } from "@/services/restaurantService";
 import type { Category, CategoryPayload } from "@/types/menu";
+import { Upload } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -28,6 +30,7 @@ const empty: CategoryPayload = { name: "", description: "", position: 0, is_acti
 export function CategoryDialog({ open, onOpenChange, category }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<CategoryPayload>(empty);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -54,6 +57,16 @@ export function CategoryDialog({ open, onOpenChange, category }: Props) {
     },
     onError: (err) =>
       toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadCategoryImage(category!.id, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      toast({ title: "Image uploaded" });
+    },
+    onError: (err) =>
+      toast({ title: "Upload failed", description: extractApiError(err), variant: "destructive" }),
   });
 
   return (
@@ -96,6 +109,33 @@ export function CategoryDialog({ open, onOpenChange, category }: Props) {
               onCheckedChange={(v) => setForm({ ...form, is_active: v })}
             />
           </div>
+          {category && (
+            <div className="space-y-2">
+              <Label>Image</Label>
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-16 overflow-hidden rounded-md border bg-muted">
+                  {category.category_image?.[0]?.image ? (
+                    <img src={category.category_image[0].image} alt={category.name} className="h-full w-full object-cover" />
+                  ) : null}
+                </div>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadMutation.mutate(f);
+                    e.target.value = "";
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => fileInput.current?.click()} disabled={uploadMutation.isPending}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploadMutation.isPending ? "Uploading..." : "Upload"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
