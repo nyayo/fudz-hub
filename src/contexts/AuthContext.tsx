@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
-import { api, tokenStorage } from "@/lib/api";
+import { tokenStorage } from "@/lib/api";
 
 export type UserRole = "admin" | "staff" | string;
 
@@ -87,25 +87,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
-}
-
-export async function requestOtp(email: string) {
-  const { data } = await api.post("/users/auth/request-otp/", { email });
-  return data;
-}
-
-export interface VerifyOtpResponse {
-  message: string;
-  verified: boolean;
-  user_exists: boolean;
-  requires_registration: boolean;
-  user?: AuthUser;
-  email?: string;
-  tokens?: { access: string; refresh: string };
-  can_link_google?: boolean;
-}
-
-export async function verifyOtp(email: string, otp: string): Promise<VerifyOtpResponse> {
-  const { data } = await api.post<VerifyOtpResponse>("/users/auth/verify-otp/", { email, otp });
-  return data;
 }
