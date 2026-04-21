@@ -90,7 +90,7 @@ export function useAuth() {
 }
 
 export async function requestOtp(email: string) {
-  const { data } = await api.post("/auth/request-otp/", { email });
+  const { data } = await api.post("/users/auth/request-otp/", { email });
   return data;
 }
 
@@ -106,6 +106,6 @@ export interface VerifyOtpResponse {
 }
 
 export async function verifyOtp(email: string, otp: string): Promise<VerifyOtpResponse> {
-  const { data } = await api.post<VerifyOtpResponse>("/auth/verify-otp/", { email, otp });
+  const { data } = await api.post<VerifyOtpResponse>("/users/auth/verify-otp/", { email, otp });
   return data;
 }
