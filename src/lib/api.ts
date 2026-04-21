@@ -57,8 +57,9 @@ api.interceptors.response.use(
       const newToken = await refreshing;
       refreshing = null;
       if (newToken) {
-        original.headers = original.headers ?? {};
-        (original.headers as Record<string, string>).Authorization = `Bearer ${newToken}`;
+        if (original.headers) {
+          (original.headers as Record<string, string>).Authorization = `Bearer ${newToken}`;
+        }
         return api(original);
       }
       window.dispatchEvent(new Event("fudz:logout"));
