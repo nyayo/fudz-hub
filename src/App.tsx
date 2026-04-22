@@ -16,6 +16,7 @@ import Promotions from "./pages/Promotions";
 import Settings from "./pages/Settings";
 import Deliveries from "./pages/Deliveries";
 import Reviews from "./pages/Reviews";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/deliveries" element={<Deliveries />} />
               <Route path="/reviews" element={<Reviews />} />
+              <Route path="/analytics" element={<Analytics />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
