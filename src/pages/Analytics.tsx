@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import {
   ResponsiveContainer,
   LineChart,
@@ -102,20 +102,19 @@ export default function Analytics() {
 
   // Fetch a few pages to get a meaningful sample. Client-side aggregation.
   const pagesToFetch = 3;
-  const queries = Array.from({ length: pagesToFetch }, (_, i) => i + 1);
-  const results = queries.map((page) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useQuery({
+  const results = useQueries({
+    queries: Array.from({ length: pagesToFetch }, (_, i) => i + 1).map((page) => ({
       queryKey: ["orders", { page, status: "all", search: "" }],
       queryFn: () => listOrders({ page }),
-    }),
-  );
+    })),
+  });
 
   const isLoading = results.some((r) => r.isLoading);
+  const updatedKey = results.map((r) => r.dataUpdatedAt).join(",");
   const orders = useMemo(
     () => results.flatMap((r) => r.data?.results ?? []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [results.map((r) => r.dataUpdatedAt).join(",")],
+    [updatedKey],
   );
 
   const cutoff = useMemo(() => {
