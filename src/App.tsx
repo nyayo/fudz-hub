@@ -17,6 +17,7 @@ import Settings from "./pages/Settings";
 import Deliveries from "./pages/Deliveries";
 import Reviews from "./pages/Reviews";
 import Analytics from "./pages/Analytics";
+import Staff from "./pages/Staff";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/deliveries" element={<Deliveries />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/staff" element={<Staff />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
