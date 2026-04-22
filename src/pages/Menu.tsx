@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search, ImageOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ImageOff, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MenuItemDialog } from "@/components/menu/MenuItemDialog";
+import { BulkImportDialog } from "@/components/menu/BulkImportDialog";
 import {
   deleteMenuItem,
   listCategories,
@@ -51,6 +52,7 @@ export default function Menu() {
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MenuItem | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: categories } = useQuery({
     queryKey: ["categories", "all"],
@@ -110,9 +112,14 @@ export default function Menu() {
             Manage menu items, prices and availability.
           </p>
         </div>
-        <Button onClick={onAdd}>
-          <Plus className="h-4 w-4 mr-2" /> New item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" /> Bulk import
+          </Button>
+          <Button onClick={onAdd}>
+            <Plus className="h-4 w-4 mr-2" /> New item
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -263,6 +270,8 @@ export default function Menu() {
       )}
 
       <MenuItemDialog open={dialogOpen} onOpenChange={setDialogOpen} item={editing} />
+
+      <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <AlertDialog
         open={!!deleteTarget}

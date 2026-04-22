@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,8 +15,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
-import { createPromotion, updatePromotion } from "@/services/restaurantService";
+import {
+  createPromotion,
+  getPromotionMenuItems,
+  updatePromotion,
+} from "@/services/restaurantService";
+import { setMenuItemPromotions, listMenuItems } from "@/services/menuService";
 import type { Promotion, PromotionPayload } from "@/types/restaurant";
+import { MenuItemMultiSelect } from "./MenuItemMultiSelect";
 
 interface Props {
   open: boolean;
@@ -44,6 +50,15 @@ function toLocalInput(iso: string) {
 export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<PromotionPayload>(empty);
+  const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
+  const [initialItemIds, setInitialItemIds] = useState<number[]>([]);
+
+  // Load currently-attached items when editing.
+  const attachedQ = useQuery({
+    queryKey: ["promotion-items", promotion?.id],
+    queryFn: () => getPromotionMenuItems(promotion!.id),
+    enabled: open && !!promotion,
+  });
 
   useEffect(() => {
     if (open) {
@@ -59,21 +74,63 @@ export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }:
             }
           : empty,
       );
+      if (!promotion) {
+        setSelectedItemIds([]);
+        setInitialItemIds([]);
+      }
     }
   }, [open, promotion]);
 
+  useEffect(() => {
+    if (attachedQ.data) {
+      const ids = attachedQ.data.map((i) => i.id);
+      setInitialItemIds(ids);
+      setSelectedItemIds(ids);
+    }
+  }, [attachedQ.data]);
+
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const payload = {
         ...form,
         start_date: form.start_date ? new Date(form.start_date).toISOString() : "",
         end_date: form.end_date ? new Date(form.end_date).toISOString() : "",
         ...(restaurantId && !promotion ? { restaurant: restaurantId } : {}),
       };
-      return promotion ? updatePromotion(promotion.id, payload) : createPromotion(payload);
+      const saved = promotion
+        ? await updatePromotion(promotion.id, payload)
+        : await createPromotion(payload);
+
+      // Reconcile menu item attachments via each item's promotion_ids.
+      const promoId = saved.id;
+      const wanted = new Set(selectedItemIds);
+      const had = new Set(initialItemIds);
+      const toAdd = [...wanted].filter((id) => !had.has(id));
+      const toRemove = [...had].filter((id) => !wanted.has(id));
+
+      if (toAdd.length || toRemove.length) {
+        // Need each item's existing promotion_ids to merge correctly.
+        const allItems = await listMenuItems({ page: 1 });
+        const byId = new Map(allItems.results.map((i) => [i.id, i]));
+        const tasks: Promise<unknown>[] = [];
+        for (const id of toAdd) {
+          const item = byId.get(id);
+          const current = item?.promotions?.map((p) => p.id) ?? [];
+          tasks.push(setMenuItemPromotions(id, Array.from(new Set([...current, promoId]))));
+        }
+        for (const id of toRemove) {
+          const item = byId.get(id);
+          const current = item?.promotions?.map((p) => p.id) ?? [];
+          tasks.push(setMenuItemPromotions(id, current.filter((p) => p !== promoId)));
+        }
+        await Promise.allSettled(tasks);
+      }
+      return saved;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["promotions"] });
+      qc.invalidateQueries({ queryKey: ["menu-items"] });
+      qc.invalidateQueries({ queryKey: ["promotion-items"] });
       toast({ title: promotion ? "Promotion updated" : "Promotion created" });
       onOpenChange(false);
     },
@@ -83,7 +140,7 @@ export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{promotion ? "Edit promotion" : "New promotion"}</DialogTitle>
           <DialogDescription>Run a limited-time discount on your menu.</DialogDescription>
@@ -139,6 +196,15 @@ export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }:
               <p className="text-xs text-muted-foreground">Enable this promotion</p>
             </div>
             <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Menu items on promotion</Label>
+            <MenuItemMultiSelect
+              selectedIds={selectedItemIds}
+              onChange={setSelectedItemIds}
+              disabled={mutation.isPending || (!!promotion && attachedQ.isLoading)}
+            />
           </div>
         </div>
         <DialogFooter>
