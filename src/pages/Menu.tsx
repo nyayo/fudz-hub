@@ -271,6 +271,8 @@ export default function Menu() {
 
       <MenuItemDialog open={dialogOpen} onOpenChange={setDialogOpen} item={editing} />
 
+      <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} />
+
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
