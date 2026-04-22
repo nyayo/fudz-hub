@@ -1,6 +1,7 @@
 import { api } from "@/lib/api";
 import type { Paginated } from "@/types/orders";
 import type { Restaurant, RestaurantPayload, Promotion, PromotionPayload } from "@/types/restaurant";
+import type { MenuItem } from "@/types/menu";
 
 export async function listRestaurants(): Promise<Paginated<Restaurant>> {
   const { data } = await api.get<Paginated<Restaurant>>("/restaurants/restaurants/");
@@ -62,6 +63,19 @@ export async function uploadPromotionBanner(id: number, file: File): Promise<Pro
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
+}
+
+// The promotion's GET /menu_items/ action returns the promotion with its
+// related items embedded. Backend serializer shape varies; we accept either
+// `menu_items` or `items`, falling back to `results`.
+export async function getPromotionMenuItems(id: number): Promise<MenuItem[]> {
+  const { data } = await api.get<unknown>(`/restaurants/promotions/${id}/menu_items/`);
+  const d = data as Record<string, unknown>;
+  const candidates = [d?.menu_items, d?.items, d?.results, data];
+  for (const c of candidates) {
+    if (Array.isArray(c)) return c as MenuItem[];
+  }
+  return [];
 }
 
 // Menu item / category image uploads (used by Slice 3 dialogs)
