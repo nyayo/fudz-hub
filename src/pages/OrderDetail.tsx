@@ -127,7 +127,8 @@ export default function OrderDetail() {
       return updateOrderStatus(order.id, next);
     },
     onSuccess: (data) => {
-      qc.setQueryData(["order", id], data);
+      qc.setQueryData<Order>(["order", id], (old) => (old ? { ...old, ...data } : data));
+      qc.invalidateQueries({ queryKey: ["order", id] });
       qc.invalidateQueries({ queryKey: ["orders"] });
       toast({
         title: "Status updated",
@@ -144,9 +145,13 @@ export default function OrderDetail() {
   const cancel = useMutation({
     mutationFn: () => updateOrderStatus(orderQ.data!.id, "cancelled"),
     onSuccess: (data) => {
-      qc.setQueryData(["order", id], data);
+      qc.setQueryData<Order>(["order", id], (old) => (old ? { ...old, ...data } : data));
+      qc.invalidateQueries({ queryKey: ["order", id] });
       qc.invalidateQueries({ queryKey: ["orders"] });
-      toast({ title: "Order cancelled" });
+      toast({
+        title: "Status updated",
+        description: `Order #${data.id} · ${ORDER_STATUS_LABEL[data.status]}`,
+      });
     },
     onError: (err) =>
       toast({
@@ -182,13 +187,14 @@ export default function OrderDetail() {
     );
 
   const order: Order = orderQ.data;
+  const items = order.items ?? [];
   const next = NEXT_STATUS[order.status];
   const terminal = order.status === "delivered" || order.status === "cancelled";
   const origin = pickupCoordinates(order);
   const destination = destinationCoordinates(order);
   const address = destinationAddress(order);
-  const itemQuantity = order.items.reduce((sum, item) => sum + item.qty, 0);
-  const subtotal = order.items.reduce(
+  const itemQuantity = items.reduce((sum, item) => sum + item.qty, 0);
+  const subtotal = items.reduce(
     (sum, item) => sum + (Number(item.unit_price) || 0) * item.qty,
     0,
   );

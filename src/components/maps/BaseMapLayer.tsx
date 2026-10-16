@@ -2,11 +2,12 @@ import { useEffect } from "react";
 import L from "leaflet";
 import { TileLayer, useMap } from "react-leaflet";
 import "maplibre-gl/dist/maplibre-gl.css";
-import "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "@maplibre/maplibre-gl-leaflet";
 
-// The leaflet plugin looks for a global maplibregl.
-// (window as any).maplibregl = maplibregl;
+maplibregl.setWorkerUrl(workerUrl);
+(window as any).maplibregl = { ...maplibregl };
 
 // If the worker still fails to load, apply the explicit worker URL fix here
 // (see the previous message), e.g. maplibregl.setWorkerUrl(workerUrl).

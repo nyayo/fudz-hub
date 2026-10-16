@@ -6,3 +6,8 @@ interface ImportMetaEnv {
   readonly VITE_MAP_TILE_URL?: string;
   readonly VITE_MAP_ATTRIBUTION?: string;
 }
+
+declare module "*?worker" {
+  const WorkerConstructor: new () => Worker;
+  export default WorkerConstructor;
+}
