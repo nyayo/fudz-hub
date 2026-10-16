@@ -162,7 +162,7 @@ export default function Login() {
                   <button type="submit" className="auth-primary-action" disabled={requestMutation.isPending || !email.trim()}>{requestMutation.isPending ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : <>Continue with email <ArrowRight size={16} /></>}</button>
                 </form>
                 <p className="auth-form-note"><ShieldCheck size={13} /> Your workspace is protected with a secure one-time verification code.</p>
-                {/*<Link className="auth-secondary-action" to="/admin/login">Platform administrator sign in</Link>*/}
+                <Link className="auth-secondary-action" to="/admin/login">Platform administrator sign in</Link>
               </>
             ) : step === "otp" ? (
               <>
