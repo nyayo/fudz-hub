@@ -6,6 +6,7 @@ export interface ReviewListParams {
   page?: number;
   search?: string;
   rating?: number | "all";
+  restaurant?: number;
 }
 
 export async function listReviews(params: ReviewListParams = {}): Promise<Paginated<Review>> {
@@ -14,6 +15,7 @@ export async function listReviews(params: ReviewListParams = {}): Promise<Pagina
       page: params.page,
       ...(params.search ? { search: params.search } : {}),
       ...(params.rating && params.rating !== "all" ? { rating: params.rating } : {}),
+      ...(params.restaurant ? { restaurant: params.restaurant } : {}),
     },
   });
   return data;

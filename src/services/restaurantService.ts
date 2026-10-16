@@ -32,23 +32,40 @@ export async function uploadRestaurantImage(
 }
 
 // Promotions
-export async function listPromotions(params: { page?: number; search?: string } = {}): Promise<Paginated<Promotion>> {
+export async function listPromotions(params: { page?: number; search?: string; restaurant_id?: number } = {}): Promise<Paginated<Promotion>> {
   const { data } = await api.get<Paginated<Promotion>>("/restaurants/promotions/", {
     params: {
       page: params.page,
+      ...(params.restaurant_id ? { restaurant: params.restaurant_id } : {}),
       ...(params.search ? { search: params.search } : {}),
     },
   });
   return data;
 }
 
-export async function createPromotion(payload: PromotionPayload): Promise<Promotion> {
-  const { data } = await api.post<Promotion>("/restaurants/promotions/", payload);
+export async function listActivePromotions(): Promise<Promotion[]> {
+  const { data } = await api.get<Promotion[]>("/restaurants/promotions/active/");
   return data;
 }
 
-export async function updatePromotion(id: number, payload: Partial<PromotionPayload>): Promise<Promotion> {
-  const { data } = await api.patch<Promotion>(`/restaurants/promotions/${id}/`, payload);
+function promotionFormData(payload: Partial<PromotionPayload>, banner: File) {
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) formData.append(key, String(value));
+  });
+  formData.append("banner", banner);
+  return formData;
+}
+
+export async function createPromotion(payload: PromotionPayload, banner?: File): Promise<Promotion> {
+  const body = banner ? promotionFormData(payload, banner) : payload;
+  const { data } = await api.post<Promotion>("/restaurants/promotions/", body, banner ? { headers: { "Content-Type": "multipart/form-data" } } : undefined);
+  return data;
+}
+
+export async function updatePromotion(id: number, payload: Partial<PromotionPayload>, banner?: File): Promise<Promotion> {
+  const body = banner ? promotionFormData(payload, banner) : payload;
+  const { data } = await api.patch<Promotion>(`/restaurants/promotions/${id}/`, body, banner ? { headers: { "Content-Type": "multipart/form-data" } } : undefined);
   return data;
 }
 
@@ -57,12 +74,7 @@ export async function deletePromotion(id: number): Promise<void> {
 }
 
 export async function uploadPromotionBanner(id: number, file: File): Promise<Promotion> {
-  const fd = new FormData();
-  fd.append("banner", file);
-  const { data } = await api.patch<Promotion>(`/restaurants/promotions/${id}/`, fd, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return data;
+  return updatePromotion(id, {}, file);
 }
 
 // The promotion's GET /menu_items/ action returns the promotion with its
@@ -82,8 +94,7 @@ export async function getPromotionMenuItems(id: number): Promise<MenuItem[]> {
 export async function uploadMenuItemImage(itemId: number, file: File): Promise<unknown> {
   const fd = new FormData();
   fd.append("image", file);
-  fd.append("menu_item", String(itemId));
-  const { data } = await api.post("/restaurants/images/", fd, {
+  const { data } = await api.post(`/restaurants/items/${itemId}/images/`, fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
@@ -92,8 +103,9 @@ export async function uploadMenuItemImage(itemId: number, file: File): Promise<u
 export async function uploadCategoryImage(categoryId: number, file: File): Promise<unknown> {
   const fd = new FormData();
   fd.append("image", file);
-  fd.append("category", String(categoryId));
-  const { data } = await api.post("/restaurants/images/", fd, {
+  const category = (await api.get<{ restaurant: number }>(`/restaurants/categories/${categoryId}/`)).data;
+  const restaurantId = category.restaurant;
+  const { data } = await api.post(`/restaurants/restaurants/${restaurantId}/categories/${categoryId}/images/`, fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;

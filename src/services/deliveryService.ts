@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 import type { Paginated } from "@/types/orders";
-import type { Delivery, DeliveryStatus } from "@/types/delivery";
+import type { AvailableCourier, Delivery, DeliveryStatus } from "@/types/delivery";
 
 export interface DeliveryListParams {
   page?: number;
@@ -24,16 +24,20 @@ export async function getDelivery(id: number | string): Promise<Delivery> {
   return data;
 }
 
-export async function updateDeliveryStatus(id: number, status: DeliveryStatus): Promise<Delivery> {
-  const { data } = await api.patch<Delivery>(`/delivery/deliveries/${id}/`, { status });
+export async function listAvailableCouriers(): Promise<AvailableCourier[]> {
+  const { data } = await api.get<AvailableCourier[] | Paginated<AvailableCourier>>(
+    "/delivery/couriers/available/",
+  );
+  return Array.isArray(data) ? data : (data?.results ?? []);
+}
+
+
+export async function assignCourier(id: number, courierId: number): Promise<Delivery> {
+  const { data } = await api.post<Delivery>(`/delivery/deliveries/${id}/assign/`, { courier_id: courierId });
   return data;
 }
 
-export async function assignDriver(id: number, driverName: string, driverPhone?: string): Promise<Delivery> {
-  const { data } = await api.patch<Delivery>(`/delivery/deliveries/${id}/`, {
-    driver_name: driverName,
-    ...(driverPhone ? { driver_phone: driverPhone } : {}),
-    status: "assigned",
-  });
+export async function completeDelivery(id: number): Promise<Delivery> {
+  const { data } = await api.post<Delivery>(`/delivery/deliveries/${id}/complete/`);
   return data;
 }

@@ -7,6 +7,14 @@ export interface MenuListParams {
   search?: string;
   category?: number | "all";
   is_available?: boolean;
+  restaurant_id?: number;
+}
+
+async function getOwnerRestaurantId(): Promise<number> {
+  const { data } = await api.get<{ profile?: { id?: number; restaurant_id?: number } }>("/users/auth/profile/");
+  const id = data.profile?.restaurant_id ?? data.profile?.id;
+  if (!id) throw new Error("This account is not linked to a restaurant workspace.");
+  return id;
 }
 
 export async function listMenuItems(params: MenuListParams = {}): Promise<Paginated<MenuItem>> {
@@ -16,6 +24,7 @@ export async function listMenuItems(params: MenuListParams = {}): Promise<Pagina
       ...(params.search ? { search: params.search } : {}),
       ...(params.category && params.category !== "all" ? { category: params.category } : {}),
       ...(params.is_available !== undefined ? { is_available: params.is_available } : {}),
+      ...(params.restaurant_id ? { restaurant_id: params.restaurant_id } : {}),
     },
   });
   return data;
@@ -51,58 +60,85 @@ export async function setMenuItemPromotions(
   return data;
 }
 
-// Sequential bulk create with per-row error reporting. Swap to a true
-// `/items/bulk/` endpoint here once the backend ships it.
-export interface BulkCreateRowResult {
+export interface BulkMenuItemPayload extends MenuItemPayload {
+  /** Existing item ID; omitted rows are upserted by exact title. */
+  id?: number;
+}
+
+export interface BulkImportRowResult {
   index: number;
   title: string;
   ok: boolean;
+  action?: "created" | "updated";
   error?: string;
   item?: MenuItem;
 }
 
-export async function bulkCreateMenuItems(
-  rows: MenuItemPayload[],
-  onProgress?: (done: number, total: number) => void,
-): Promise<BulkCreateRowResult[]> {
-  const results: BulkCreateRowResult[] = [];
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    try {
-      const item = await createMenuItem(row);
-      results.push({ index: i, title: row.title, ok: true, item });
-    } catch (err) {
-      const msg =
-        (err as { response?: { data?: unknown }; message?: string })?.response?.data
-          ? JSON.stringify((err as { response: { data: unknown } }).response.data)
-          : (err as Error)?.message ?? "Unknown error";
-      results.push({ index: i, title: row.title, ok: false, error: msg });
-    }
-    onProgress?.(i + 1, rows.length);
-  }
-  return results;
+interface BulkImportResponse {
+  results: Array<{
+    index: number;
+    title: string;
+    ok: boolean;
+    action?: "created" | "updated";
+    error?: unknown;
+    item?: MenuItem;
+  }>;
 }
 
-export async function listCategories(params: { page?: number; search?: string } = {}): Promise<Paginated<Category>> {
+/** Create/update a CSV batch while always binding every row to one restaurant. */
+export async function bulkUpsertMenuItems(
+  rows: BulkMenuItemPayload[],
+  onProgress?: (done: number, total: number) => void,
+  restaurantId?: number,
+): Promise<BulkImportRowResult[]> {
+  if (!rows.length) return [];
+  const scopedRestaurantId = restaurantId ?? await getOwnerRestaurantId();
+  onProgress?.(0, rows.length);
+  const { data } = await api.post<BulkImportResponse>("/restaurants/items/bulk/", {
+    restaurant: scopedRestaurantId,
+    items: rows,
+  });
+  onProgress?.(rows.length, rows.length);
+  return data.results.map((row, index) => ({
+    index: row.index ?? index,
+    title: row.title || rows[row.index ?? index]?.title || "Menu item",
+    ok: row.ok,
+    action: row.action,
+    item: row.item,
+    error: row.error == null
+      ? undefined
+      : typeof row.error === "string"
+        ? row.error
+        : JSON.stringify(row.error),
+  }));
+}
+
+export async function listCategories(params: { page?: number; search?: string; restaurant_id?: number } = {}): Promise<Paginated<Category>> {
+  const restaurantId = params.restaurant_id ?? await getOwnerRestaurantId();
   const { data } = await api.get<Paginated<Category>>("/restaurants/categories/", {
     params: {
       page: params.page,
+      restaurant: restaurantId,
       ...(params.search ? { search: params.search } : {}),
     },
   });
   return data;
 }
 
-export async function createCategory(payload: CategoryPayload): Promise<Category> {
-  const { data } = await api.post<Category>("/restaurants/categories/", payload);
+export async function createCategory(payload: CategoryPayload, selectedRestaurantId?: number): Promise<Category> {
+  const restaurantId = selectedRestaurantId ?? await getOwnerRestaurantId();
+  const body = selectedRestaurantId ? { ...payload, restaurant: selectedRestaurantId } : payload;
+  const { data } = await api.post<Category>(`/restaurants/restaurants/${restaurantId}/categories/`, body);
   return data;
 }
 
-export async function updateCategory(id: number, payload: Partial<CategoryPayload>): Promise<Category> {
-  const { data } = await api.patch<Category>(`/restaurants/categories/${id}/`, payload);
+export async function updateCategory(id: number, payload: Partial<CategoryPayload>, selectedRestaurantId?: number): Promise<Category> {
+  const restaurantId = selectedRestaurantId ?? await getOwnerRestaurantId();
+  const { data } = await api.patch<Category>(`/restaurants/restaurants/${restaurantId}/categories/${id}/`, payload);
   return data;
 }
 
-export async function deleteCategory(id: number): Promise<void> {
-  await api.delete(`/restaurants/categories/${id}/`);
+export async function deleteCategory(id: number, selectedRestaurantId?: number): Promise<void> {
+  const restaurantId = selectedRestaurantId ?? await getOwnerRestaurantId();
+  await api.delete(`/restaurants/restaurants/${restaurantId}/categories/${id}/`);
 }

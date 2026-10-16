@@ -8,25 +8,38 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
-import {
-  listRestaurants,
-  updateRestaurant,
-  uploadRestaurantImage,
-} from "@/services/restaurantService";
+import { updateRestaurant, uploadRestaurantImage } from "@/services/restaurantService";
 import type { RestaurantPayload } from "@/types/restaurant";
 import { Upload } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getRestaurant } from "@/services/restaurantService";
+import { Bell, UserRound } from "lucide-react";
+import { getNotificationPreferences, getUserProfile, updateNotificationPreferences, updateUserProfile, type NotificationPreferences } from "@/services/authService";
+import { useSearchParams } from "react-router-dom";
 
 export default function Settings() {
   const qc = useQueryClient();
+  const { user, role } = useAuth();
+  const [searchParams] = useSearchParams();
+  const restaurantId = role === "admin"
+    ? Number(searchParams.get("restaurant")) || 0
+    : Number(user?.profile?.id ?? 0);
   const { data, isLoading } = useQuery({
-    queryKey: ["restaurants"],
-    queryFn: listRestaurants,
+    queryKey: ["restaurant", restaurantId],
+    queryFn: () => getRestaurant(restaurantId),
+    enabled: restaurantId > 0,
   });
 
-  const restaurant = data?.results[0];
+  const restaurant = data;
   const [form, setForm] = useState<RestaurantPayload>({});
+  const [phone, setPhone] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
   const logoInput = useRef<HTMLInputElement>(null);
+  const profileQ = useQuery({ queryKey: ["user-profile"], queryFn: getUserProfile });
+  const preferencesQ = useQuery({ queryKey: ["notification-preferences"], queryFn: getNotificationPreferences });
+  useEffect(() => { if (profileQ.data) { setPhone(profileQ.data.phone ?? ""); setFirstName(profileQ.data.first_name ?? ""); setLastName(profileQ.data.last_name ?? ""); } }, [profileQ.data]);
 
   useEffect(() => {
     if (restaurant) {
@@ -34,7 +47,6 @@ export default function Settings() {
         restaurant_name: restaurant.restaurant_name,
         business_license: restaurant.business_license,
         address: restaurant.address,
-        phone: restaurant.phone ?? "",
         opening_hours: restaurant.opening_hours ?? { Opening: "", Closing: "" },
         is_active: restaurant.is_active,
       });
@@ -44,6 +56,7 @@ export default function Settings() {
   const saveMutation = useMutation({
     mutationFn: () => updateRestaurant(restaurant!.id, form),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["restaurant", restaurantId] });
       qc.invalidateQueries({ queryKey: ["restaurants"] });
       toast({ title: "Restaurant updated" });
     },
@@ -55,11 +68,23 @@ export default function Settings() {
     mutationFn: ({ field, file }: { field: "image" | "logo"; file: File }) =>
       uploadRestaurantImage(restaurant!.id, field, file),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["restaurant", restaurantId] });
       qc.invalidateQueries({ queryKey: ["restaurants"] });
       toast({ title: "Image uploaded" });
     },
     onError: (err) =>
       toast({ title: "Upload failed", description: extractApiError(err), variant: "destructive" }),
+  });
+
+  const profileMutation = useMutation({
+    mutationFn: () => updateUserProfile({ phone, first_name: firstName, last_name: lastName }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["user-profile"] }); toast({ title: "Contact details updated" }); },
+    onError: (err) => toast({ title: "Couldn't update contact", description: extractApiError(err), variant: "destructive" }),
+  });
+  const preferencesMutation = useMutation({
+    mutationFn: (payload: Partial<NotificationPreferences>) => updateNotificationPreferences(payload),
+    onSuccess: (next) => qc.setQueryData(["notification-preferences"], next),
+    onError: (err) => toast({ title: "Couldn't update preferences", description: extractApiError(err), variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -172,14 +197,6 @@ export default function Settings() {
               onChange={(e) => setForm({ ...form, address: e.target.value })}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              value={form.phone ?? ""}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            />
-          </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
               <Label>Active</Label>
@@ -227,6 +244,31 @@ export default function Settings() {
               }
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card id="account">
+        <CardHeader><div className="settings-section-title"><span className="metric-icon"><UserRound size={17}/></span><div><CardTitle>Account & contact</CardTitle><CardDescription>Manage the contact information tied to your sign-in.</CardDescription></div></div></CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2"><Label htmlFor="account-first-name">First name</Label><Input id="account-first-name" autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)}/></div>
+          <div className="grid gap-2"><Label htmlFor="account-last-name">Last name</Label><Input id="account-last-name" autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)}/></div>
+          <div className="grid gap-2"><Label htmlFor="account-email">Account email</Label><Input id="account-email" value={profileQ.data?.email ?? ""} readOnly/><p className="text-xs text-muted-foreground">Email is your verified sign-in identity and cannot be changed here.</p></div>
+          <div className="grid gap-2"><Label htmlFor="account-phone">Phone</Label><Input id="account-phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Add a phone number"/></div>
+          <div className="md:col-span-2 flex justify-end"><Button variant="outline" onClick={() => profileMutation.mutate()} disabled={profileMutation.isPending || profileQ.isLoading}>{profileMutation.isPending ? "Saving…" : "Save contact"}</Button></div>
+        </CardContent>
+      </Card>
+
+      <Card id="notifications">
+        <CardHeader><div className="settings-section-title"><span className="metric-icon metric-icon-warm"><Bell size={17}/></span><div><CardTitle>Notifications</CardTitle><CardDescription>Choose which updates you receive.</CardDescription></div></div></CardHeader>
+        <CardContent>
+          {([
+            ["receive_email", "Email updates", "Operational and account updates sent to your inbox."],
+            ["receive_push", "Push notifications", "Alerts for registered mobile devices and this browser. Inbox updates also appear in the dashboard."],
+            ["promotions_and_offers", "Promotions and offers", "Product and campaign announcements."],
+            ["new_restaurants", "New restaurants and menu items", "Updates about new places and menus."],
+            ["review_reminders", "Review reminders", "Reminders related to customer feedback."],
+          ] as const).map(([key, title, description]) => <div key={key} className="preference-row"><div><Label htmlFor={`pref-${key}`}>{title}</Label><p>{description}</p></div><Switch id={`pref-${key}`} checked={!!preferencesQ.data?.[key]} disabled={preferencesQ.isLoading || preferencesMutation.isPending} onCheckedChange={(checked) => preferencesMutation.mutate({ [key]: checked })}/></div>)}
+          {preferencesQ.isError && <p className="py-3 text-sm text-destructive">{extractApiError(preferencesQ.error)}</p>}
         </CardContent>
       </Card>
 

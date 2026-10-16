@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -8,6 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    ...(process.env.MANUS_PREVIEW_HOST ? { allowedHosts: [process.env.MANUS_PREVIEW_HOST] } : {}),
     hmr: {
       overlay: false,
     },
@@ -19,4 +21,8 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  optimizeDeps: {
+    exclude: ["maplibre-gl"],
+  },
 }));
+

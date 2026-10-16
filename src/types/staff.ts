@@ -14,6 +14,9 @@ export interface StaffMember {
   is_active: boolean;
   // The list response only exposes these reliably:
   email?: string;
+  email_display?: string;
+  first_name_display?: string;
+  last_name_display?: string;
   first_name?: string;
   last_name?: string;
   full_name?: string;

@@ -7,7 +7,9 @@ export type PaymentStatus = typeof PAYMENT_STATUSES[number];
 export interface SimpleMenu {
   id: number;
   name?: string;
+  title?: string;
   image?: string | null;
+  images?: Array<{ id?: number; image: string }>;
   price?: string;
 }
 
@@ -24,9 +26,15 @@ export interface OrderItem {
 export interface Order {
   id: number;
   customer: number;
+  customer_name?: string | null;
   restaurant: number;
-  pickup_location?: string | null;
-  dropoff_location?: string | null;
+  restaurant_name?: string | null;
+  pickup_location?: string | null | { type?: string; coordinates?: [number, number]; latitude?: number; longitude?: number; lat?: number; lng?: number };
+  pickup_latitude?: number | null;
+  pickup_longitude?: number | null;
+  dropoff_location?: string | null | { type?: string; coordinates?: [number, number]; latitude?: number; longitude?: number; lat?: number; lng?: number };
+  dropoff_latitude?: number | null;
+  dropoff_longitude?: number | null;
   placed_at: string;
   status: OrderStatus;
   payment_status?: PaymentStatus;

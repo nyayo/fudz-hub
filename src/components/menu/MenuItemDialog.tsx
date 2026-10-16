@@ -35,6 +35,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   item?: MenuItem | null;
+  restaurantId?: number;
 }
 
 const empty: MenuItemPayload = {
@@ -48,14 +49,14 @@ const empty: MenuItemPayload = {
   allergens: "",
 };
 
-export function MenuItemDialog({ open, onOpenChange, item }: Props) {
+export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<MenuItemPayload>(empty);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const { data: categories } = useQuery({
-    queryKey: ["categories", "all"],
-    queryFn: () => listCategories(),
+    queryKey: ["categories", "all", restaurantId],
+    queryFn: () => listCategories({ restaurant_id: restaurantId }),
     enabled: open,
   });
 
@@ -80,7 +81,7 @@ export function MenuItemDialog({ open, onOpenChange, item }: Props) {
 
   const mutation = useMutation({
     mutationFn: () =>
-      item ? updateMenuItem(item.id, form) : createMenuItem(form),
+      item ? updateMenuItem(item.id, form) : createMenuItem(restaurantId ? { ...form, restaurant: restaurantId } : form),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["menu-items"] });
       toast({ title: item ? "Item updated" : "Item created" });
@@ -205,7 +206,7 @@ export function MenuItemDialog({ open, onOpenChange, item }: Props) {
               <div className="flex items-center gap-3 flex-wrap">
                 {item.images?.map((img) => (
                   <div key={img.id} className="h-16 w-16 overflow-hidden rounded-md border bg-muted">
-                    <img src={img.image} alt={item.title} className="h-full w-full object-cover" />
+                    <img src={img.image} alt={item.title} className="menu-item-image h-full w-full object-cover" />
                   </div>
                 ))}
                 <input

@@ -12,17 +12,18 @@ interface Props {
   selectedIds: number[];
   onChange: (ids: number[]) => void;
   disabled?: boolean;
+  restaurantId?: number;
 }
 
-export function MenuItemMultiSelect({ selectedIds, onChange, disabled }: Props) {
+export function MenuItemMultiSelect({ selectedIds, onChange, disabled, restaurantId }: Props) {
   const [search, setSearch] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["menu-items", "all-for-promo"],
-    queryFn: () => listMenuItems({ page: 1 }),
+    queryKey: ["menu-items", "all-for-promo", restaurantId],
+    queryFn: () => listMenuItems({ page: 1, restaurant_id: restaurantId }),
   });
 
-  const items = data?.results ?? [];
+  const items = useMemo(() => data?.results ?? [], [data?.results]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -39,7 +40,8 @@ export function MenuItemMultiSelect({ selectedIds, onChange, disabled }: Props) 
   const toggle = (id: number) => {
     if (disabled) return;
     const next = new Set(selected);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     onChange(Array.from(next));
   };
 

@@ -46,6 +46,7 @@ export interface Category {
 }
 
 export interface MenuItemPayload {
+  restaurant?: number;
   title: string;
   description: string;
   category: number;
@@ -57,6 +58,7 @@ export interface MenuItemPayload {
 }
 
 export interface CategoryPayload {
+  restaurant?: number;
   name: string;
   description: string;
   position: number;

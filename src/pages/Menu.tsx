@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, ImageOff, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Select,
   SelectContent,
@@ -43,8 +45,12 @@ import {
 import type { MenuItem } from "@/types/menu";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Menu() {
+  const [searchParams] = useSearchParams();
+  const { role } = useAuth();
+  const restaurantId = role === "admin" ? Number(searchParams.get("restaurant")) || undefined : undefined;
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
@@ -55,17 +61,18 @@ export default function Menu() {
   const [importOpen, setImportOpen] = useState(false);
 
   const { data: categories } = useQuery({
-    queryKey: ["categories", "all"],
-    queryFn: () => listCategories(),
+    queryKey: ["categories", "all", restaurantId],
+    queryFn: () => listCategories({ restaurant_id: restaurantId }),
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["menu-items", { page, search, category }],
+    queryKey: ["menu-items", { page, search, category, restaurantId }],
     queryFn: () =>
       listMenuItems({
         page,
         search: search || undefined,
         category: category === "all" ? "all" : Number(category),
+        restaurant_id: restaurantId,
       }),
   });
 
@@ -113,10 +120,10 @@ export default function Menu() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <Button variant="outline" onClick={() => setImportOpen(true)} disabled={role === "admin" && !restaurantId}>
             <Upload className="h-4 w-4 mr-2" /> Bulk import
           </Button>
-          <Button onClick={onAdd}>
+          <Button onClick={onAdd} disabled={role === "admin" && !restaurantId}>
             <Plus className="h-4 w-4 mr-2" /> New item
           </Button>
         </div>
@@ -158,7 +165,7 @@ export default function Menu() {
         </div>
       </Card>
 
-      <Card>
+      <Card className="table-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -195,7 +202,7 @@ export default function Menu() {
                         <img
                           src={img}
                           alt={item.title}
-                          className="h-10 w-10 rounded-md object-cover"
+                          className="menu-item-image h-10 w-10 rounded-md object-cover"
                         />
                       ) : (
                         <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
@@ -212,7 +219,7 @@ export default function Menu() {
                       )}
                     </TableCell>
                     <TableCell>{item.category_name}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell className="text-left tabular-nums">
                       {Number(item.price).toLocaleString()}
                     </TableCell>
                     <TableCell>
@@ -223,17 +230,17 @@ export default function Menu() {
                         }
                       />
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => onEdit(item)}>
+                    <TableCell className="text-left">
+                      <IconButton label="Edit item" onClick={() => onEdit(item)}>
                         <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
+                      </IconButton>
+                      <IconButton
+                        label="Delete item"
                         onClick={() => setDeleteTarget(item)}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 );
@@ -269,9 +276,9 @@ export default function Menu() {
         </div>
       )}
 
-      <MenuItemDialog open={dialogOpen} onOpenChange={setDialogOpen} item={editing} />
+      <MenuItemDialog open={dialogOpen} onOpenChange={setDialogOpen} item={editing} restaurantId={restaurantId} />
 
-      <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} restaurantId={restaurantId} />
 
       <AlertDialog
         open={!!deleteTarget}

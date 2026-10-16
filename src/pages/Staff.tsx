@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { IconButton } from "@/components/ui/icon-button";
+
 import {
   Table,
   TableBody,
@@ -23,37 +25,56 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, UserPlus, Pencil, Trash2 } from "lucide-react";
+import {
+  Search,
+  UserPlus,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
 import { listStaff, deleteStaff } from "@/services/staffService";
-import { listRestaurants } from "@/services/restaurantService";
 import { STAFF_ROLE_LABEL, type StaffMember } from "@/types/staff";
 import { StaffDialog } from "@/components/staff/StaffDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "react-router-dom";
 
 function staffName(s: StaffMember) {
-  const first = s.first_name ?? s.user?.first_name ?? "";
-  const last = s.last_name ?? s.user?.last_name ?? "";
+  const first =
+    s.first_name ?? s.first_name_display ?? s.user?.first_name ?? "";
+  const last = s.last_name ?? s.last_name_display ?? s.user?.last_name ?? "";
   const full = `${first} ${last}`.trim();
-  return full || s.full_name || s.email || s.user?.email || `Staff #${s.id}`;
+  return (
+    full ||
+    s.full_name ||
+    s.email_display ||
+    s.email ||
+    s.user?.email ||
+    `Staff #${s.id}`
+  );
 }
 
 export default function Staff() {
   const qc = useQueryClient();
+  const { user, role } = useAuth();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<StaffMember | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<StaffMember | null>(null);
+  const [page, setPage] = useState(1);
 
-  const restaurantsQ = useQuery({
-    queryKey: ["restaurants"],
-    queryFn: listRestaurants,
-  });
-  const restaurantId = restaurantsQ.data?.results?.[0]?.id ?? null;
+  const restaurantId =
+    role === "admin"
+      ? Number(searchParams.get("restaurant")) || null
+      : Number(user?.profile?.id ?? 0) || null;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["staff"],
-    queryFn: () => listStaff(),
+    queryKey: ["staff", restaurantId, page],
+    queryFn: () =>
+      listStaff({ page, restaurant_id: restaurantId ?? undefined }),
   });
 
   const filtered = useMemo(() => {
@@ -62,8 +83,17 @@ export default function Staff() {
     if (!q) return list;
     return list.filter((s) => {
       const name = staffName(s).toLowerCase();
-      const email = (s.email ?? s.user?.email ?? "").toLowerCase();
-      return name.includes(q) || email.includes(q) || s.role.toLowerCase().includes(q);
+      const email = (
+        s.email_display ??
+        s.email ??
+        s.user?.email ??
+        ""
+      ).toLowerCase();
+      return (
+        name.includes(q) ||
+        email.includes(q) ||
+        s.role.toLowerCase().includes(q)
+      );
     });
   }, [data, search]);
 
@@ -75,7 +105,11 @@ export default function Staff() {
       setConfirmDelete(null);
     },
     onError: (err) =>
-      toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+      toast({
+        title: "Error",
+        description: extractApiError(err),
+        variant: "destructive",
+      }),
   });
 
   const openCreate = () => {
@@ -115,7 +149,7 @@ export default function Staff() {
         </div>
       </Card>
 
-      <Card>
+      <Card className="table-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -137,8 +171,13 @@ export default function Staff() {
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
-                  {search ? "No staff match your search." : "No staff yet. Invite your first team member."}
+                <TableCell
+                  colSpan={5}
+                  className="text-center text-sm text-muted-foreground py-10"
+                >
+                  {search
+                    ? "No staff match your search."
+                    : "No staff yet. Invite your first team member."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -146,28 +185,32 @@ export default function Staff() {
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">{staffName(s)}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {s.email ?? s.user?.email ?? "—"}
+                    {s.email_display ?? s.email ?? s.user?.email ?? "—"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{STAFF_ROLE_LABEL[s.role] ?? s.role}</Badge>
+                    <Badge variant="secondary">
+                      {STAFF_ROLE_LABEL[s.role] ?? s.role}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={s.is_active ? "default" : "outline"}>
                       {s.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
+                  <TableCell className="text-left">
+                    <IconButton
+                      label="Edit staff member"
+                      onClick={() => openEdit(s)}
+                    >
                       <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                    </IconButton>
+                    <IconButton
+                      label="Remove staff member"
                       onClick={() => setConfirmDelete(s)}
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))
@@ -176,6 +219,34 @@ export default function Staff() {
         </Table>
       </Card>
 
+      {data && data.count > data.results.length && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {data.count} team members · page {page}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!data.previous}
+              onClick={() => setPage((n) => Math.max(1, n - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!data.next}
+              onClick={() => setPage((n) => n + 1)}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <StaffDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -183,18 +254,24 @@ export default function Staff() {
         staff={editing}
       />
 
-      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+      <AlertDialog
+        open={!!confirmDelete}
+        onOpenChange={(v) => !v && setConfirmDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove staff member?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmDelete && staffName(confirmDelete)} will lose access immediately. This can't be undone.
+              {confirmDelete && staffName(confirmDelete)} will lose access
+              immediately. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmDelete && deleteMutation.mutate(confirmDelete.id)}
+              onClick={() =>
+                confirmDelete && deleteMutation.mutate(confirmDelete.id)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? "Removing..." : "Remove"}

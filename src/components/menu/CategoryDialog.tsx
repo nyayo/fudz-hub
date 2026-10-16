@@ -23,11 +23,12 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   category?: Category | null;
+  restaurantId?: number;
 }
 
 const empty: CategoryPayload = { name: "", description: "", position: 0, is_active: true };
 
-export function CategoryDialog({ open, onOpenChange, category }: Props) {
+export function CategoryDialog({ open, onOpenChange, category, restaurantId }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<CategoryPayload>(empty);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -49,7 +50,7 @@ export function CategoryDialog({ open, onOpenChange, category }: Props) {
 
   const mutation = useMutation({
     mutationFn: () =>
-      category ? updateCategory(category.id, form) : createCategory(form),
+      category ? updateCategory(category.id, form, restaurantId) : createCategory(form, restaurantId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["categories"] });
       toast({ title: category ? "Category updated" : "Category created" });

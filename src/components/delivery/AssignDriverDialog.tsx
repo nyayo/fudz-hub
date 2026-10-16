@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
-import { assignDriver } from "@/services/deliveryService";
+import { assignCourier, listAvailableCouriers } from "@/services/deliveryService";
 import type { Delivery } from "@/types/delivery";
 
 interface Props {
@@ -17,21 +16,19 @@ interface Props {
 
 export function AssignDriverDialog({ open, onOpenChange, delivery }: Props) {
   const qc = useQueryClient();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-
+  const [courierId, setCourierId] = useState("");
+  const couriersQ = useQuery({ queryKey: ["available-couriers"], queryFn: listAvailableCouriers, enabled: open });
+  
   useEffect(() => {
-    if (open && delivery) {
-      setName(delivery.driver_name ?? "");
-      setPhone(delivery.driver_phone ?? "");
-    }
-  }, [open, delivery]);
+    if (!open) setCourierId("");
+  }, [open]);
 
   const mutation = useMutation({
-    mutationFn: () => assignDriver(delivery!.id, name, phone),
+    mutationFn: () => assignCourier(delivery!.id, Number(courierId)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deliveries"] });
-      toast({ title: "Driver assigned" });
+      qc.invalidateQueries({ queryKey: ["available-couriers"] });
+      toast({ title: "Courier assigned" });
       onOpenChange(false);
     },
     onError: (err) =>
@@ -43,20 +40,20 @@ export function AssignDriverDialog({ open, onOpenChange, delivery }: Props) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Assign driver</DialogTitle>
+          <DialogDescription>Choose an approved courier who is currently available.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="dname">Driver name</Label>
-            <Input id="dname" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="dphone">Phone</Label>
-            <Input id="dphone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
+        <div className="grid gap-3 py-2">
+          <p className="text-sm text-muted-foreground">Choose an approved courier who is currently available.</p>
+          <Select value={courierId} onValueChange={setCourierId}>
+            <SelectTrigger><SelectValue placeholder={couriersQ.isLoading ? "Loading couriers…" : "Select a courier"} /></SelectTrigger>
+            <SelectContent>{couriersQ.data?.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name} · {c.vehicle_type} · ★ {Number(c.rating).toFixed(1)}</SelectItem>)}</SelectContent>
+          </Select>
+          {couriersQ.isError && <p className="text-sm text-destructive">{extractApiError(couriersQ.error)}</p>}
+          {!couriersQ.isLoading && !couriersQ.data?.length && !couriersQ.isError && <p className="text-sm text-muted-foreground">No available couriers right now.</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => mutation.mutate()} disabled={!name || mutation.isPending}>
+          <Button onClick={() => mutation.mutate()} disabled={!courierId || mutation.isPending}>
             {mutation.isPending ? "Saving..." : "Assign"}
           </Button>
         </DialogFooter>

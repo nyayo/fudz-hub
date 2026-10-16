@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Table,
   TableBody,
@@ -28,31 +29,33 @@ import { extractApiError } from "@/lib/api";
 import {
   deletePromotion,
   listPromotions,
-  listRestaurants,
   uploadPromotionBanner,
 } from "@/services/restaurantService";
 import type { Promotion } from "@/types/restaurant";
 import { PromotionDialog } from "@/components/promotions/PromotionDialog";
-import { Plus, Pencil, Trash2, Upload, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "react-router-dom";
 
 export default function Promotions() {
   const qc = useQueryClient();
+  const { user, role } = useAuth();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Promotion | null>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
   const [bannerTarget, setBannerTarget] = useState<number | null>(null);
 
-  const { data: restaurants } = useQuery({
-    queryKey: ["restaurants"],
-    queryFn: listRestaurants,
-  });
-  const restaurantId = restaurants?.results[0]?.id;
+  const restaurantId = role === "admin"
+    ? Number(searchParams.get("restaurant")) || undefined
+    : Number(user?.profile?.id ?? 0) || undefined;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["promotions", search],
-    queryFn: () => listPromotions({ search }),
+    queryKey: ["promotions", restaurantId, search, page],
+    queryFn: () => listPromotions({ search, page, restaurant_id: restaurantId }),
   });
 
   const deleteMutation = useMutation({
@@ -88,6 +91,7 @@ export default function Promotions() {
             setEditing(null);
             setDialogOpen(true);
           }}
+          disabled={role === "admin" && !restaurantId}
         >
           <Plus className="mr-2 h-4 w-4" /> New promotion
         </Button>
@@ -99,13 +103,13 @@ export default function Promotions() {
           <Input
             placeholder="Search promotions..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-9"
           />
         </div>
       </Card>
 
-      <Card>
+      <Card className="table-card">
         {isLoading ? (
           <div className="p-6 space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -130,7 +134,7 @@ export default function Promotions() {
               {data.results.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <div className="h-12 w-20 overflow-hidden rounded bg-muted">
+                    <div className="promotion-table-banner">
                       {p.banner ? (
                         <img src={p.banner} alt={p.name} className="h-full w-full object-cover" />
                       ) : null}
@@ -151,34 +155,29 @@ export default function Promotions() {
                       <Badge variant="outline">Inactive</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setBannerTarget(p.id);
-                        bannerInput.current?.click();
-                      }}
+                  <TableCell className="text-left">
+                    <IconButton
+                      label="Upload banner"
+                      onClick={() => { setBannerTarget(p.id); bannerInput.current?.click(); }}
                     >
                       <Upload className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditing(p);
-                        setDialogOpen(true);
-                      }}
+                    </IconButton>
+                    
+                    <IconButton
+                      label="Edit promotion"
+                      onClick={() => { setEditing(p); setDialogOpen(true); }}
                     >
                       <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                    </IconButton>
+                    
+                    <IconButton
+                      label="Delete promotion"
                       onClick={() => setConfirmDelete(p)}
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </IconButton>
+
                   </TableCell>
                 </TableRow>
               ))}
@@ -187,6 +186,8 @@ export default function Promotions() {
         )}
       </Card>
 
+      {data && data.count > data.results.length && <div className="flex items-center justify-between text-sm text-muted-foreground"><span>{data.count} promotions · page {page}</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled={!data.previous} onClick={() => setPage((n) => Math.max(1, n - 1))}><ChevronLeft className="h-4 w-4"/>Previous</Button><Button variant="outline" size="sm" disabled={!data.next} onClick={() => setPage((n) => n + 1)}>Next<ChevronRight className="h-4 w-4"/></Button></div></div>}
+
       <input
         ref={bannerInput}
         type="file"
@@ -194,7 +195,11 @@ export default function Promotions() {
         hidden
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f && bannerTarget) bannerMutation.mutate({ id: bannerTarget, file: f });
+          if (f && bannerTarget) {
+            if (!f.type.startsWith("image/")) toast({ title: "Choose an image file", description: "Select a JPG, PNG, or WebP image.", variant: "destructive" });
+            else if (f.size > 5_000 * 1024) toast({ title: "Image is too large", description: "Choose an image no larger than 5000 KB.", variant: "destructive" });
+            else bannerMutation.mutate({ id: bannerTarget, file: f });
+          }
           e.target.value = "";
         }}
       />

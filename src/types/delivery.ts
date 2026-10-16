@@ -1,35 +1,48 @@
-export const DELIVERY_STATUSES = ["pending", "assigned", "picked_up", "in_transit", "delivered", "cancelled"] as const;
+export const DELIVERY_STATUSES = ["pending", "assigned", "accepted", "declined", "picked_up", "delivered", "cancelled"] as const;
 export type DeliveryStatus = typeof DELIVERY_STATUSES[number];
 
 export const DELIVERY_STATUS_LABEL: Record<DeliveryStatus, string> = {
   pending: "Pending",
   assigned: "Assigned",
+  accepted: "Accepted",
+  declined: "Declined",
   picked_up: "Picked up",
-  in_transit: "In transit",
   delivered: "Delivered",
   cancelled: "Cancelled",
 };
 
+export interface DeliveryOrder {
+  id: number;
+  dropoff_location?: string | null;
+  placed_at?: string;
+  status?: string;
+}
+
 export interface Delivery {
   id: number;
-  order: number;
-  order_id?: number;
-  driver?: number | null;
-  driver_name?: string | null;
-  driver_phone?: string | null;
-  pickup_location?: string | null;
-  dropoff_location?: string | null;
+  order: DeliveryOrder;
+  courier: number | null;
+  courier_name?: string | null;
+  courier_phone?: string | null;
   status: DeliveryStatus;
-  notes?: string | null;
-  created_at: string;
+  pickup_coords?: { latitude: number; longitude: number } | null;
+  dropoff_coords?: { latitude: number; longitude: number } | null;
+  assigned_at?: string | null;
   updated_at: string;
-  picked_up_at?: string | null;
-  delivered_at?: string | null;
+}
+
+export interface AvailableCourier {
+  id: number;
+  name: string;
+  phone?: string | null;
+  vehicle_type: "bike" | "motorcycle" | "car" | string;
+  rating: number | string;
+  total_deliveries: number;
 }
 
 export const NEXT_DELIVERY_STATUS: Partial<Record<DeliveryStatus, DeliveryStatus>> = {
   pending: "assigned",
-  assigned: "picked_up",
-  picked_up: "in_transit",
-  in_transit: "delivered",
+  assigned: "accepted",
+  accepted: "picked_up",
+  picked_up: "delivered",
 };

@@ -1,32 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ImagePlus, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
-import {
-  createPromotion,
-  getPromotionMenuItems,
-  updatePromotion,
-} from "@/services/restaurantService";
+import { createPromotion, getPromotionMenuItems, updatePromotion } from "@/services/restaurantService";
 import { setMenuItemPromotions, listMenuItems } from "@/services/menuService";
 import type { Promotion, PromotionPayload } from "@/types/restaurant";
 import { MenuItemMultiSelect } from "./MenuItemMultiSelect";
 
 interface Props {
   open: boolean;
-  onOpenChange: (v: boolean) => void;
+  onOpenChange: (value: boolean) => void;
   promotion?: Promotion | null;
   restaurantId?: number;
 }
@@ -42,52 +32,59 @@ const empty: PromotionPayload = {
 
 function toLocalInput(iso: string) {
   if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const date = new Date(iso);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }: Props) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
+  const fileInput = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<PromotionPayload>(empty);
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
   const [initialItemIds, setInitialItemIds] = useState<number[]>([]);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [bannerError, setBannerError] = useState("");
 
-  // Load currently-attached items when editing.
-  const attachedQ = useQuery({
+  const attachedQuery = useQuery({
     queryKey: ["promotion-items", promotion?.id],
     queryFn: () => getPromotionMenuItems(promotion!.id),
     enabled: open && !!promotion,
   });
 
   useEffect(() => {
-    if (open) {
-      setForm(
-        promotion
-          ? {
-              name: promotion.name,
-              description: promotion.description,
-              discount: promotion.discount ?? 0,
-              start_date: toLocalInput(promotion.start_date),
-              end_date: toLocalInput(promotion.end_date),
-              is_active: promotion.is_active,
-            }
-          : empty,
-      );
-      if (!promotion) {
-        setSelectedItemIds([]);
-        setInitialItemIds([]);
-      }
+    if (!open) return;
+    setForm(promotion ? {
+      name: promotion.name,
+      description: promotion.description,
+      discount: promotion.discount ?? 0,
+      start_date: toLocalInput(promotion.start_date),
+      end_date: toLocalInput(promotion.end_date),
+      is_active: promotion.is_active,
+    } : empty);
+    setBannerFile(null);
+    setBannerPreview(promotion?.banner ?? null);
+    setBannerError("");
+    if (!promotion) {
+      setSelectedItemIds([]);
+      setInitialItemIds([]);
     }
   }, [open, promotion]);
 
   useEffect(() => {
-    if (attachedQ.data) {
-      const ids = attachedQ.data.map((i) => i.id);
-      setInitialItemIds(ids);
-      setSelectedItemIds(ids);
-    }
-  }, [attachedQ.data]);
+    if (!bannerFile) return;
+    const objectUrl = URL.createObjectURL(bannerFile);
+    setBannerPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [bannerFile]);
+
+  useEffect(() => {
+    if (!attachedQuery.data) return;
+    const ids = attachedQuery.data.map((item) => item.id);
+    setInitialItemIds(ids);
+    setSelectedItemIds(ids);
+  }, [attachedQuery.data]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -98,122 +95,99 @@ export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }:
         ...(restaurantId && !promotion ? { restaurant: restaurantId } : {}),
       };
       const saved = promotion
-        ? await updatePromotion(promotion.id, payload)
-        : await createPromotion(payload);
+        ? await updatePromotion(promotion.id, payload, bannerFile ?? undefined)
+        : await createPromotion(payload, bannerFile ?? undefined);
 
-      // Reconcile menu item attachments via each item's promotion_ids.
-      const promoId = saved.id;
       const wanted = new Set(selectedItemIds);
       const had = new Set(initialItemIds);
       const toAdd = [...wanted].filter((id) => !had.has(id));
       const toRemove = [...had].filter((id) => !wanted.has(id));
-
       if (toAdd.length || toRemove.length) {
-        // Need each item's existing promotion_ids to merge correctly.
-        const allItems = await listMenuItems({ page: 1 });
-        const byId = new Map(allItems.results.map((i) => [i.id, i]));
+        const allItems = await listMenuItems({ page: 1, restaurant_id: restaurantId });
+        const byId = new Map(allItems.results.map((item) => [item.id, item]));
         const tasks: Promise<unknown>[] = [];
         for (const id of toAdd) {
           const item = byId.get(id);
-          const current = item?.promotions?.map((p) => p.id) ?? [];
-          tasks.push(setMenuItemPromotions(id, Array.from(new Set([...current, promoId]))));
+          const current = item?.promotions?.map((entry) => entry.id) ?? [];
+          tasks.push(setMenuItemPromotions(id, Array.from(new Set([...current, saved.id]))));
         }
         for (const id of toRemove) {
           const item = byId.get(id);
-          const current = item?.promotions?.map((p) => p.id) ?? [];
-          tasks.push(setMenuItemPromotions(id, current.filter((p) => p !== promoId)));
+          const current = item?.promotions?.map((entry) => entry.id) ?? [];
+          tasks.push(setMenuItemPromotions(id, current.filter((id) => id !== saved.id)));
         }
         await Promise.allSettled(tasks);
       }
       return saved;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["promotions"] });
-      qc.invalidateQueries({ queryKey: ["menu-items"] });
-      qc.invalidateQueries({ queryKey: ["promotion-items"] });
+      queryClient.invalidateQueries({ queryKey: ["promotions"] });
+      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+      queryClient.invalidateQueries({ queryKey: ["promotion-items"] });
       toast({ title: promotion ? "Promotion updated" : "Promotion created" });
       onOpenChange(false);
     },
-    onError: (err) =>
-      toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+    onError: (error) => toast({ title: "Couldn't save promotion", description: extractApiError(error), variant: "destructive" }),
   });
+
+  const handleBanner = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setBannerError("Choose an image file such as JPG, PNG, or WebP.");
+      return;
+    }
+    if (file.size > 5_000 * 1024) {
+      setBannerError("This image is larger than 5 MB. Choose a smaller file.");
+      return;
+    }
+    setBannerError("");
+    setBannerFile(file);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{promotion ? "Edit promotion" : "New promotion"}</DialogTitle>
-          <DialogDescription>Run a limited-time discount on your menu.</DialogDescription>
+      <DialogContent className="promotion-dialog-content w-[calc(100vw-2rem)] max-w-4xl">
+        <DialogHeader className="promotion-dialog-header">
+          <DialogTitle>{promotion ? "Edit promotion" : "Create a promotion"}</DialogTitle>
+          <DialogDescription>Shape the offer, choose its menu items, and give the campaign a visual.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="pname">Name</Label>
-            <Input id="pname" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="pdesc">Description</Label>
-            <Textarea
-              id="pdesc"
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="discount">Discount (%)</Label>
-            <Input
-              id="discount"
-              type="number"
-              min={0}
-              max={100}
-              value={form.discount}
-              onChange={(e) => setForm({ ...form, discount: Number(e.target.value) })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="start">Start</Label>
-              <Input
-                id="start"
-                type="datetime-local"
-                value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-              />
+
+        <div className="promotion-editor-grid py-2">
+          <div className="promotion-fields">
+            <div className="auth-field"><Label htmlFor="promotion-name">Campaign name</Label><Input id="promotion-name" value={form.name} placeholder="Weekend lunch special" onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+            <div className="auth-field"><Label htmlFor="promotion-description">Description</Label><Textarea id="promotion-description" rows={3} value={form.description} placeholder="A short note customers will see" onChange={(event) => setForm({ ...form, description: event.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="auth-field"><Label htmlFor="promotion-discount">Discount (%)</Label><Input id="promotion-discount" type="number" min={0} max={100} value={form.discount} onChange={(event) => setForm({ ...form, discount: Number(event.target.value) })} /></div>
+              <div className="auth-field"><Label htmlFor="promotion-active">Visibility</Label><div className="promotion-visibility"><span>{form.is_active ? "Enabled" : "Paused"}</span><Switch id="promotion-active" checked={form.is_active} onCheckedChange={(value) => setForm({ ...form, is_active: value })} /></div></div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="end">End</Label>
-              <Input
-                id="end"
-                type="datetime-local"
-                value={form.end_date}
-                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="auth-field"><Label htmlFor="promotion-start">Starts</Label><Input id="promotion-start" type="datetime-local" value={form.start_date} onChange={(event) => setForm({ ...form, start_date: event.target.value })} /></div>
+              <div className="auth-field"><Label htmlFor="promotion-end">Ends</Label><Input id="promotion-end" type="datetime-local" value={form.end_date} onChange={(event) => setForm({ ...form, end_date: event.target.value })} /></div>
             </div>
-          </div>
-          <div className="flex items-center justify-between rounded-md border p-3">
-            <div>
-              <Label>Active</Label>
-              <p className="text-xs text-muted-foreground">Enable this promotion</p>
-            </div>
-            <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
+            <div className="auth-field"><Label>Menu items in this offer</Label><MenuItemMultiSelect selectedIds={selectedItemIds} onChange={setSelectedItemIds} restaurantId={restaurantId} disabled={mutation.isPending || (!!promotion && attachedQuery.isLoading)} /></div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Menu items on promotion</Label>
-            <MenuItemMultiSelect
-              selectedIds={selectedItemIds}
-              onChange={setSelectedItemIds}
-              disabled={mutation.isPending || (!!promotion && attachedQ.isLoading)}
-            />
+          <div className="promotion-banner-field">
+            <Label htmlFor="promotion-banner">Campaign image</Label>
+            <input ref={fileInput} id="promotion-banner" type="file" accept="image/*" hidden onChange={(event) => { handleBanner(event.target.files?.[0]); event.target.value = ""; }} />
+            <div className="promotion-banner-preview">
+              {bannerPreview ? <img src={bannerPreview} alt={bannerFile?.name || `${promotion?.name || form.name || "Promotion"} banner preview`} /> : (
+                <div className="promotion-banner-placeholder"><ImagePlus size={23} /><strong>Add a campaign image</strong><small>Make the offer recognizable in the restaurant app.</small></div>
+              )}
+            </div>
+            <div className="promotion-banner-actions">
+              <Button type="button" variant="outline" onClick={() => fileInput.current?.click()}><Upload size={15} />{bannerPreview ? "Replace image" : "Choose image"}</Button>
+              {bannerFile && <Button type="button" variant="ghost" size="icon" aria-label="Remove selected image" onClick={() => { setBannerFile(null); setBannerPreview(promotion?.banner ?? null); setBannerError(""); }}><X size={15} /></Button>}
+            </div>
+            <p className="promotion-banner-help">JPG, PNG, or WebP · up to 5 MB. Existing artwork is kept unless replaced.</p>
+            {bannerError && <p className="text-xs text-destructive" role="alert">{bannerError}</p>}
           </div>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !form.name || !form.start_date || !form.end_date}
-          >
-            {mutation.isPending ? "Saving..." : "Save"}
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.name.trim() || !form.start_date || !form.end_date}>
+            {mutation.isPending ? "Saving…" : promotion ? "Save changes" : "Create campaign"}
           </Button>
         </DialogFooter>
       </DialogContent>

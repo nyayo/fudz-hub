@@ -1,9 +1,18 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, ImageOff } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ImageOff,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Table,
   TableBody,
@@ -28,27 +37,39 @@ import { deleteCategory, listCategories } from "@/services/menuService";
 import type { Category } from "@/types/menu";
 import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Categories() {
+  const [searchParams] = useSearchParams();
+  const { role } = useAuth();
+  const restaurantId =
+    role === "admin"
+      ? Number(searchParams.get("restaurant")) || undefined
+      : undefined;
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Category | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => listCategories(),
+    queryKey: ["categories", restaurantId, page],
+    queryFn: () => listCategories({ page, restaurant_id: restaurantId }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteCategory(id),
+    mutationFn: (id: number) => deleteCategory(id, restaurantId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["categories"] });
       toast({ title: "Category deleted" });
       setDeleteTarget(null);
     },
     onError: (err) =>
-      toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+      toast({
+        title: "Error",
+        description: extractApiError(err),
+        variant: "destructive",
+      }),
   });
 
   const items = data?.results ?? [];
@@ -58,14 +79,21 @@ export default function Categories() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
-          <p className="text-sm text-muted-foreground">Organize your menu into sections.</p>
+          <p className="text-sm text-muted-foreground">
+            Organize your menu into sections.
+          </p>
         </div>
-        <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setDialogOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4 mr-2" /> New category
         </Button>
       </div>
 
-      <Card>
+      <Card className="table-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -88,7 +116,10 @@ export default function Categories() {
               ))
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-10 text-muted-foreground"
+                >
                   No categories yet.
                 </TableCell>
               </TableRow>
@@ -99,7 +130,11 @@ export default function Categories() {
                   <TableRow key={c.id}>
                     <TableCell>
                       {img ? (
-                        <img src={img} alt={c.name} className="h-10 w-10 rounded-md object-cover" />
+                        <img
+                          src={img}
+                          alt={c.name}
+                          className="table-image-square h-10 w-10 rounded-md object-cover"
+                        />
                       ) : (
                         <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
                           <ImageOff className="h-4 w-4 text-muted-foreground" />
@@ -110,23 +145,28 @@ export default function Categories() {
                     <TableCell className="max-w-md truncate text-muted-foreground">
                       {c.description}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{c.items_count}</TableCell>
+                    <TableCell className="text-left tabular-nums">
+                      {c.items_count}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={c.is_active ? "default" : "secondary"}>
                         {c.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
+                    <TableCell className="text-left">
+                      <IconButton
+                        label="Edit category"
                         onClick={() => { setEditing(c); setDialogOpen(true); }}
                       >
                         <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(c)}>
+                      </IconButton>
+                      <IconButton
+                        label="Delete category"
+                        onClick={() => setDeleteTarget(c)}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 );
@@ -136,9 +176,45 @@ export default function Categories() {
         </Table>
       </Card>
 
-      <CategoryDialog open={dialogOpen} onOpenChange={setDialogOpen} category={editing} />
+      {data && data.count > items.length && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {data.count} categories · page {page}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!data.previous}
+              onClick={() => setPage((n) => Math.max(1, n - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!data.next}
+              onClick={() => setPage((n) => n + 1)}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+      <CategoryDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        category={editing}
+        restaurantId={restaurantId}
+      />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete category?</AlertDialogTitle>
@@ -149,7 +225,9 @@ export default function Categories() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              onClick={() =>
+                deleteTarget && deleteMutation.mutate(deleteTarget.id)
+              }
             >
               Delete
             </AlertDialogAction>
