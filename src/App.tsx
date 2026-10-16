@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import Login from "./pages/Login";
+import AdminLogin from "./pages/AdminLogin";
+import ActivateInvitation from "./pages/ActivateInvitation";
 import Dashboard from "./pages/Dashboard";
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
@@ -44,6 +46,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/activate-invitation" element={<ActivateInvitation />} />
             <Route
               element={
                 <ProtectedRoute>

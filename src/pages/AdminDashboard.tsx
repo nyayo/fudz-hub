@@ -34,7 +34,7 @@ export default function AdminDashboard() {
     { label: "Wishlist items", value: wishlists.data?.count, icon: Heart, hint: "Customer saves" },
   ];
   return <div className="page-stack max-w-7xl">
-    <header className="page-heading"><div><p className="eyebrow">PLATFORM CONTROL</p><h1>Admin overview</h1><p>One workspace for restaurant operations, customer accounts, and platform activity.</p></div><span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800"><Activity size={14}/> Platform admin</span></header>
+    <header className="page-heading"><div><p className="eyebrow">PLATFORM CONTROL</p><h1>Admin overview</h1><p>One workspace for restaurant operations, customer accounts, and platform activity.</p></div><span className="admin-role-badge"><Activity size={14}/> Platform admin</span></header>
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {metrics.map((m) => <Card key={m.label} className="metric-tile"><span className="metric-icon"><m.icon size={17}/></span><div><small>{m.label}</small>{m.value === undefined && summaryLoading ? <Skeleton className="mt-1 h-6 w-14"/> : <strong>{m.value?.toLocaleString() ?? "—"}</strong>}<span className="table-subline">{m.hint}</span></div></Card>)}
     </section>

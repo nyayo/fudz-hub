@@ -51,6 +51,22 @@ export interface UserProfile {
   is_superuser?: boolean;
 }
 
+export interface AuthTokenResponse {
+  message: string;
+  user: AuthUser;
+  tokens: { access: string; refresh: string };
+}
+
+export async function adminLogin(email: string, password: string): Promise<AuthTokenResponse> {
+  const { data } = await api.post<AuthTokenResponse>("/users/auth/admin/login/", { email, password });
+  return data;
+}
+
+export async function activateInvitation(payload: { uidb64: string; token: string; password: string; confirm_password: string }): Promise<AuthTokenResponse> {
+  const { data } = await api.post<AuthTokenResponse>("/users/auth/invitations/activate/", payload);
+  return data;
+}
+
 export async function requestOtp(email: string) {
   const { data } = await api.post("/users/auth/request-otp/", { email });
   return data;

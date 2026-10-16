@@ -41,7 +41,6 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
   const isEdit = !!staff;
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<StaffRole>("waiter");
@@ -55,10 +54,8 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
       setLastName(staff.last_name ?? staff.user?.last_name ?? "");
       setRole(staff.role);
       setIsActive(staff.is_active);
-      setPassword("");
     } else {
       setEmail("");
-      setPassword("");
       setFirstName("");
       setLastName("");
       setRole("waiter");
@@ -74,7 +71,6 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
       if (!restaurantId) throw new Error("No restaurant selected");
       return createStaff({
         email,
-        password,
         first_name: firstName,
         last_name: lastName,
         role,
@@ -93,7 +89,7 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
 
   const canSubmit = isEdit
     ? true
-    : email.trim() && password.length >= 6 && firstName.trim() && lastName.trim() && restaurantId;
+    : email.trim() && firstName.trim() && lastName.trim() && restaurantId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,19 +125,7 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Temporary password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Share this with the staff member so they can sign in.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">An activation link will be emailed to this address. They will choose their password before they can sign in.</p>
             </>
           )}
 

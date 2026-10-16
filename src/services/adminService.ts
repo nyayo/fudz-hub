@@ -48,6 +48,22 @@ export interface AdminListParams {
   user_type?: string;
 }
 
+export interface AdminRestaurantCreatePayload {
+  restaurant_name: string;
+  business_license: string;
+  address: string;
+  owner_email: string;
+  owner_first_name: string;
+  owner_last_name: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export async function createAdminRestaurant(payload: AdminRestaurantCreatePayload): Promise<AdminRestaurant> {
+  const { data } = await api.post<AdminRestaurant>("/restaurants/admin/restaurants/", payload);
+  return data;
+}
+
 export async function listAdminRestaurants(params: AdminListParams = {}) {
   const { data } = await api.get<Paginated<AdminRestaurant>>("/restaurants/admin/restaurants/", { params });
   return data;

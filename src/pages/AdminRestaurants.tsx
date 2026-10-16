@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  Plus,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -61,6 +62,7 @@ import { extractApiError } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import {
   listAdminRestaurants,
+  createAdminRestaurant,
   updateAdminRestaurant,
   type AdminRestaurant,
 } from "@/services/adminService";
@@ -72,9 +74,14 @@ export default function AdminRestaurants() {
   const [search, setSearch] = useState("");
   const [approval, setApproval] = useState("all");
   const [page, setPage] = useState(1);
-  const [locationTarget, setLocationTarget] = useState<AdminRestaurant | null>(
-    null,
-  );
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ restaurant_name: "", business_license: "", address: "", owner_email: "", owner_first_name: "", owner_last_name: "" });
+  const createMutation = useMutation({
+    mutationFn: () => createAdminRestaurant(createForm),
+    onSuccess: () => { setCreateOpen(false); setCreateForm({ restaurant_name: "", business_license: "", address: "", owner_email: "", owner_first_name: "", owner_last_name: "" }); qc.invalidateQueries({ queryKey: ["admin", "restaurants"] }); toast({ title: "Restaurant created", description: "An activation invitation was sent to the owner email." }); },
+    onError: (error) => toast({ title: "Creation failed", description: extractApiError(error), variant: "destructive" }),
+  });
+  const [locationTarget, setLocationTarget] = useState<AdminRestaurant | null>(null);
   const [locationCoordinates, setLocationCoordinates] =
     useState<LatLngTuple | null>(null);
   const [locationCleared, setLocationCleared] = useState(false);
@@ -170,9 +177,8 @@ export default function AdminRestaurants() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{query.data?.count ?? "—"} total</Badge>
-          <Button variant="outline" onClick={() => void copySignupLink()}>
-            <Copy size={15} /> Copy public sign-up link
-          </Button>
+          <Button variant="outline" onClick={() => void copySignupLink()}><Copy size={15} /> Copy public sign-up link</Button>
+          <Button onClick={() => setCreateOpen(true)}><Plus size={15} /> Add restaurant</Button>
         </div>
       </header>
 
@@ -459,6 +465,19 @@ export default function AdminRestaurants() {
           </div>
         </div>
       )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle>Add restaurant</DialogTitle><DialogDescription>Create the workspace and send the owner a secure activation invitation.</DialogDescription></DialogHeader>
+          <form className="grid gap-3" onSubmit={(event) => { event.preventDefault(); createMutation.mutate(); }}>
+            <div className="grid gap-3 sm:grid-cols-2"><Input placeholder="Restaurant name" value={createForm.restaurant_name} onChange={(event) => setCreateForm({ ...createForm, restaurant_name: event.target.value })} required /><Input placeholder="Business licence" value={createForm.business_license} onChange={(event) => setCreateForm({ ...createForm, business_license: event.target.value })} required /></div>
+            <Input placeholder="Restaurant address" value={createForm.address} onChange={(event) => setCreateForm({ ...createForm, address: event.target.value })} required />
+            <div className="grid gap-3 sm:grid-cols-2"><Input placeholder="Owner first name" value={createForm.owner_first_name} onChange={(event) => setCreateForm({ ...createForm, owner_first_name: event.target.value })} required /><Input placeholder="Owner last name" value={createForm.owner_last_name} onChange={(event) => setCreateForm({ ...createForm, owner_last_name: event.target.value })} required /></div>
+            <Input type="email" placeholder="Owner email" value={createForm.owner_email} onChange={(event) => setCreateForm({ ...createForm, owner_email: event.target.value })} required />
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Creating…" : "Create and send invite"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={!!locationTarget}
