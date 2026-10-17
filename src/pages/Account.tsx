@@ -128,7 +128,7 @@ export default function Account() {
           </Button>
         </div>
       </CardContent>
-      <div className="account-browser-footer"><a href="/notification-setup.md" target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">Open notification setup guide</a><Button variant="outline" onClick={() => testNotification.mutate()} disabled={testNotification.isPending}>{testNotification.isPending ? "Queuing test…" : "Send test push"}</Button></div>
+      <div className="account-browser-footer"><a href="/notification-setup.md" target="_blank" rel="noreferrer" className="text-sm font-medium text-primary-foreground hover:underline">Open notification setup guide</a><Button variant="outline" onClick={() => testNotification.mutate()} disabled={testNotification.isPending}>{testNotification.isPending ? "Queuing test…" : "Send test push"}</Button></div>
     </Card>
   </div>;
 }

@@ -24,9 +24,9 @@ import type { Order } from "@/types/orders";
 
 type RangeKey = "7d" | "30d" | "90d";
 const RANGE_DAYS: Record<RangeKey, number> = { "7d": 7, "30d": 30, "90d": 90 };
-const PIE_COLORS = ["#168260", "#73ad94", "#d49a54", "#d9765e", "#668277", "#aec9bb"];
-const chartGrid = "#edf1ee";
-const chartText = "#87948d";
+const PIE_COLORS = ["#FF6B00", "#FF9A4D", "#B84A00", "#FFC999", "#3B1F6B", "#E8D5C0"];
+const chartGrid = "#F3E7DA";
+const chartText = "#8A7767";
 
 function money(value: number) {
   return value.toLocaleString(undefined, { style: "currency", currency: "UGX", maximumFractionDigits: 0 });
@@ -151,7 +151,7 @@ export default function Analytics() {
     { label: "Average order value", value: money(averageOrder), detail: "Revenue divided by active orders", icon: TrendingUp },
     { label: "Cancellation rate", value: `${cancelRate.toFixed(1)}%`, detail: `${cancelledOrders} cancelled orders`, icon: Activity },
   ];
-  const tooltipStyle = { background: "#fff", border: "1px solid #e5ebe8", borderRadius: 12, boxShadow: "0 8px 24px rgba(25,51,42,.1)", color: "#30453a", fontSize: 11 };
+  const tooltipStyle = { background: "#fff", border: "1px solid #EBDFD2", borderRadius: 12, boxShadow: "0 8px 24px rgba(36,24,64,.10)", color: "#2A1F3E", fontSize: 11 };
 
   return (
     <div className="page-stack analytics-page">
@@ -178,10 +178,10 @@ export default function Analytics() {
               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: chartText, fontSize: 10 }} minTickGap={18}/>
               <YAxis yAxisId="revenue" axisLine={false} tickLine={false} tick={{ fill: chartText, fontSize: 10 }} tickFormatter={moneyTick} width={42}/>
               <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} tick={{ fill: chartText, fontSize: 10 }} allowDecimals={false} width={28}/>
-              <Tooltip contentStyle={tooltipStyle} formatter={(value: number | string, name: string) => [name === "Revenue" ? money(Number(value)) : value, name]} labelStyle={{ color: "#677970", marginBottom: 4 }}/>
+              <Tooltip contentStyle={tooltipStyle} formatter={(value: number | string, name: string) => [name === "Revenue" ? money(Number(value)) : value, name]} labelStyle={{ color: "#7A6A5E", marginBottom: 4 }}/>
               <Legend wrapperStyle={{ fontSize: 10, color: chartText, paddingTop: 8 }}/>
-              <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="Revenue" stroke="#18815f" strokeWidth={2.8} dot={false} activeDot={{ r: 4, strokeWidth: 0 }}/>
-              <Line yAxisId="orders" type="monotone" dataKey="orders" name="Orders" stroke="#d48a4d" strokeWidth={2.3} dot={false} activeDot={{ r: 4, strokeWidth: 0 }}/>
+              <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="Revenue" stroke="#FF6B00" strokeWidth={2.8} dot={false} activeDot={{ r: 4, strokeWidth: 0 }}/>
+              <Line yAxisId="orders" type="monotone" dataKey="orders" name="Orders" stroke="#B84A00" strokeWidth={2.3} dot={false} activeDot={{ r: 4, strokeWidth: 0 }}/>
             </LineChart></ResponsiveContainer>}
           </div>
         </Card>
@@ -206,9 +206,9 @@ export default function Analytics() {
             {isLoading ? <Skeleton className="h-full w-full"/> : failedWithoutData ? <ChartEmptyState>Order data could not be loaded.</ChartEmptyState> : topItems.length === 0 ? <ChartEmptyState/> : <ResponsiveContainer width="100%" height="100%"><BarChart data={topItems} layout="vertical" margin={{ top: 4, right: 15, left: 2, bottom: 0 }}>
               <CartesianGrid horizontal={false} strokeDasharray="3 5" stroke={chartGrid}/>
               <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: chartText, fontSize: 10 }} allowDecimals={false}/>
-              <YAxis type="category" dataKey="name" width={116} axisLine={false} tickLine={false} tick={{ fill: "#596b62", fontSize: 10 }}/>
+              <YAxis type="category" dataKey="name" width={116} axisLine={false} tickLine={false} tick={{ fill: "#5E4E42", fontSize: 10 }}/>
               <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [value, "Units sold"]}/>
-              <Bar dataKey="qty" name="Units sold" fill="#18815f" radius={[0, 6, 6, 0]} maxBarSize={20}/>
+              <Bar dataKey="qty" name="Units sold" fill="#FF6B00" radius={[0, 6, 6, 0]} maxBarSize={20}/>
             </BarChart></ResponsiveContainer>}
           </div>
         </Card>
@@ -221,7 +221,7 @@ export default function Analytics() {
               <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: chartText, fontSize: 9 }} interval={2} tickFormatter={(hour: number) => `${String(hour).padStart(2, "0")}:00`}/>
               <YAxis axisLine={false} tickLine={false} tick={{ fill: chartText, fontSize: 9 }} allowDecimals={false} width={28}/>
               <Tooltip contentStyle={tooltipStyle} labelFormatter={(hour: number) => `${String(hour).padStart(2, "0")}:00`} formatter={(value: number) => [value, "Orders"]}/>
-              <Bar dataKey="orders" name="Orders" fill="#d48a4d" radius={[5, 5, 0, 0]} maxBarSize={20}/>
+              <Bar dataKey="orders" name="Orders" fill="#FFA45C" radius={[5, 5, 0, 0]} maxBarSize={20}/>
             </BarChart></ResponsiveContainer>}
           </div>
         </Card>

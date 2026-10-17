@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 const variants: Record<DeliveryStatus, string> = {
   pending: "bg-muted text-muted-foreground",
   assigned: "bg-secondary text-secondary-foreground",
-  accepted: "bg-primary/15 text-primary",
+  accepted: "bg-violet-100 text-violet-800",
   declined: "bg-destructive/15 text-destructive",
-  picked_up: "bg-primary/15 text-primary",
-  delivered: "bg-emerald-500/15 text-emerald-700",
+  picked_up: "bg-accent text-accent-foreground",
+  delivered: "bg-success/15 text-success",
   cancelled: "bg-destructive/15 text-destructive",
 };
 

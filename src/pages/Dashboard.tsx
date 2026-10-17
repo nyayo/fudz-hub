@@ -325,7 +325,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trend} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="salesWash" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e16a3d" stopOpacity={0.18} /><stop offset="95%" stopColor="#e16a3d" stopOpacity={0} /></linearGradient>
+                      <linearGradient id="salesWash" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#FF6B00" stopOpacity={0.18} /><stop offset="95%" stopColor="#FF6B00" stopOpacity={0} /></linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 5" />
                     <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} dy={8} />
@@ -333,11 +333,11 @@ export default function Dashboard() {
                     <YAxis yAxisId="orders" orientation="right" hide domain={[0, "dataMax + 2"]} />
                     <Tooltip
                       cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "3 4", strokeOpacity: 0.35 }}
-                      contentStyle={{ background: "hsl(var(--popover))", border: "none", borderRadius: 12, boxShadow: "0 8px 28px rgba(35,25,15,.13)", color: "hsl(var(--popover-foreground))", fontSize: 12 }}
+                      contentStyle={{ background: "hsl(var(--popover))", border: "none", borderRadius: 12, boxShadow: "0 8px 28px rgba(36,24,64,.13)", color: "hsl(var(--popover-foreground))", fontSize: 12 }}
                       formatter={(value: number, name: string) => [name === "Item sales" ? money(value) : value, name]}
                     />
-                    <Area yAxisId="sales" type="monotone" dataKey="sales" name="Item sales" stroke="#dd683b" strokeWidth={2.5} fill="url(#salesWash)" activeDot={{ r: 4, strokeWidth: 0 }} />
-                    <Area yAxisId="orders" type="monotone" dataKey="orders" name="Orders" stroke="#6e9b79" strokeWidth={2} fill="none" activeDot={{ r: 3, strokeWidth: 0 }} />
+                    <Area yAxisId="sales" type="monotone" dataKey="sales" name="Item sales" stroke="#FF6B00" strokeWidth={2.5} fill="url(#salesWash)" activeDot={{ r: 4, strokeWidth: 0 }} />
+                    <Area yAxisId="orders" type="monotone" dataKey="orders" name="Orders" stroke="#B84A00" strokeWidth={2} fill="none" activeDot={{ r: 3, strokeWidth: 0 }} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}

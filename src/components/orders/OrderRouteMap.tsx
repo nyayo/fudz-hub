@@ -114,19 +114,19 @@ export function OrderRouteMap({ origin, destination }: Props) {
         <FitRouteBounds positions={routePoints} />
         <Polyline
           positions={routePoints}
-          pathOptions={{ color: "#16845f", weight: 5, opacity: 0.9, lineCap: "round", lineJoin: "round" }}
+          pathOptions={{ color: "#FF6B00", weight: 5, opacity: 0.9, lineCap: "round", lineJoin: "round" }}
         />
         <CircleMarker
           center={origin}
           radius={9}
-          pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#16845f", fillOpacity: 1 }}
+          pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#3B1F6B", fillOpacity: 1 }}
         >
           <Tooltip direction="top" offset={[0, -7]} permanent>Restaurant</Tooltip>
         </CircleMarker>
         <CircleMarker
           center={destination}
           radius={9}
-          pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#e47a39", fillOpacity: 1 }}
+          pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#B84A00", fillOpacity: 1 }}
         >
           <Tooltip direction="top" offset={[0, -7]} permanent>Customer</Tooltip>
         </CircleMarker>
