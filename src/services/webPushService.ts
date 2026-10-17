@@ -75,7 +75,7 @@ export async function enableBrowserPush(permissionRequest?: Promise<Notification
   const { data } = await api.post<{ success: boolean; created: boolean; device_id: number }>("/users/auth/device/register/", {
     registration_id: subscription.endpoint,
     type: "web",
-    name: "Fudz Hub web browser",
+    name: "FoGo Merchant",
     p256dh: bytesToBase64(p256dh),
     auth: bytesToBase64(auth),
   });

@@ -11,11 +11,11 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { message: event.data ? event.data.text() : "You have a new Fudz Hub update." };
+    payload = { message: event.data ? event.data.text() : "You have a new FoGo Partner update." };
   }
 
   const extra = payload.extra || payload.data || {};
-  const title = payload.title || "Fudz Hub";
+  const title = payload.title || "FoGo Partner";
   const body = payload.message || payload.body || payload.notification?.body || "You have a new update.";
   const orderId = extra.order_id || payload.order_id;
   const candidateUrl = extra.url || payload.url || (orderId ? `/orders/${orderId}` : "/");

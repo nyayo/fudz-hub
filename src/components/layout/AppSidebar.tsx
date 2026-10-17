@@ -182,14 +182,16 @@ export function AppSidebar({ mobileOpen, onNavigate }: AppSidebarProps) {
   return (
     <aside id="primary-navigation" ref={sidebarRef} className={`app-sidebar${mobileOpen ? " is-mobile-open" : ""}`} aria-label="Primary navigation" aria-hidden={isMobile && !mobileOpen}>
       <div className="sidebar-brand-row">
-        <div className="brand-mark" aria-hidden="true"><UtensilsCrossed size={19} strokeWidth={2.1} /></div>
-        <div className="brand-lockup"><strong>fudz<span>hub</span></strong><small>OPERATIONS</small></div>
+        <div className="brand-full">
+          <img className="brand-full-logo" src="/logo.png" alt="FoGo" width={84} height={41} />
+          <small>MARCHANT · OPERATIONS</small>
+        </div>
         <button ref={closeButtonRef} type="button" className="sidebar-mobile-close" onClick={onNavigate} aria-label="Close navigation"><X size={19} /></button>
       </div>
 
       <div className="workspace-switcher">
         <span className="workspace-avatar"><Store size={16} /></span>
-        <span className="workspace-switcher-copy"><small>{isAdmin ? (selectedRestaurant ? "RESTAURANT" : "PLATFORM") : "WORKSPACE"}</small><strong>{isAdmin ? (selectedRestaurant ? selectedRestaurantName : "Fudz Platform") : restaurantName}</strong></span>
+        <span className="workspace-switcher-copy"><small>{isAdmin ? (selectedRestaurant ? "RESTAURANT" : "PLATFORM") : "WORKSPACE"}</small><strong>{isAdmin ? (selectedRestaurant ? selectedRestaurantName : "FoGo Platform") : restaurantName}</strong></span>
         <span className="workspace-status-dot" title="Signed in" />
       </div>
 

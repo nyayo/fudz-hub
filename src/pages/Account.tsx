@@ -48,7 +48,7 @@ export default function Account() {
     mutationFn: (permissionRequest: Promise<NotificationPermission>) => enableBrowserPush(permissionRequest),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["browser-push-status"] });
-      toast({ title: "Browser notifications enabled", description: "This browser is now registered for Fudz Hub push alerts." });
+      toast({ title: "Browser notifications enabled", description: "This browser is now registered for FoGo Merchant push alerts." });
     },
     onError: (error) => toast({ title: "Couldn't enable browser notifications", description: error instanceof Error ? error.message : extractApiError(error), variant: "destructive" }),
   });
@@ -73,11 +73,11 @@ export default function Account() {
   const accountType = profileQ.data?.user_type?.replace(/_/g, " ") || "workspace member";
 
   return <div className="page-stack account-page">
-    <header className="page-heading account-page-heading"><div><p className="eyebrow">PROFILE & PREFERENCES</p><h1>Account</h1><p>Keep your personal details current and choose how Fudz Hub reaches you.</p></div><span className="account-secure-chip"><ShieldCheck size={14}/> Secure sign-in</span></header>
+    <header className="page-heading account-page-heading"><div><p className="eyebrow">PROFILE & PREFERENCES</p><h1>Account</h1><p>Keep your personal details current and choose how FoGo Merchant reaches you.</p></div><span className="account-secure-chip"><ShieldCheck size={14}/> Secure sign-in</span></header>
 
     <Card className="account-overview-card">
       <div className="account-overview-avatar" aria-hidden="true">{initials}</div>
-      <div className="account-overview-copy"><span className="eyebrow">YOUR FUDZ HUB PROFILE</span><strong>{profileQ.isLoading ? "Loading profile…" : displayName}</strong><span>{profileQ.data?.email || "Email not available"}</span></div>
+      <div className="account-overview-copy"><span className="eyebrow">YOUR FOGO MARCHANT PROFILE</span><strong>{profileQ.isLoading ? "Loading profile…" : displayName}</strong><span>{profileQ.data?.email || "Email not available"}</span></div>
       <div className="account-overview-meta"><span className="account-type-pill">{accountType}</span><span><LockKeyhole size={13}/> OTP-protected account</span></div>
     </Card>
     {profileQ.isError && <div className="analytics-data-notice" role="alert">Couldn't load account profile: {extractApiError(profileQ.error)}</div>}
@@ -106,7 +106,7 @@ export default function Account() {
     </div>
 
     <Card className="account-panel account-browser-card">
-      <CardHeader className="account-panel-header"><div className="settings-section-title"><span className="metric-icon"><Monitor size={17}/></span><div><CardTitle>Browser notifications</CardTitle><CardDescription>Send alerts to this browser even when Fudz Hub isn't open.</CardDescription></div></div></CardHeader>
+      <CardHeader className="account-panel-header"><div className="settings-section-title"><span className="metric-icon"><Monitor size={17}/></span><div><CardTitle>Browser notifications</CardTitle><CardDescription>Send alerts to this browser even when FoGo Merchant isn't open.</CardDescription></div></div></CardHeader>
       <CardContent className="account-browser-content">
         <div className="account-browser-status"><span className={`account-browser-indicator${browserPushQ.data?.subscribed ? " is-on" : ""}`}/><div><strong>{browserPushQ.data?.subscribed ? "This browser is subscribed" : "This browser isn't subscribed yet"}</strong><p>{browserPushQ.data?.subscribed ? "Push alerts are registered on this device." : "Permission is requested only when you enable browser alerts."}</p></div></div>
         <div className="account-browser-actions">
@@ -128,7 +128,7 @@ export default function Account() {
           </Button>
         </div>
       </CardContent>
-      <div className="account-browser-footer"><a href="/notification-setup.md" target="_blank" rel="noreferrer" className="text-sm font-medium text-primary-foreground hover:underline">Open notification setup guide</a><Button variant="outline" onClick={() => testNotification.mutate()} disabled={testNotification.isPending}>{testNotification.isPending ? "Queuing test…" : "Send test push"}</Button></div>
+      <div className="account-browser-footer"><a href="/notification-setup.md" target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">Open notification setup guide</a><Button variant="outline" onClick={() => testNotification.mutate()} disabled={testNotification.isPending}>{testNotification.isPending ? "Queuing test…" : "Send test push"}</Button></div>
     </Card>
   </div>;
 }

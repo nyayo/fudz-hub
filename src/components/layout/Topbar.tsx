@@ -90,7 +90,7 @@ export function Topbar({ mobileNavOpen, onMenuClick }: TopbarProps) {
     <header className="workspace-topbar">
       <button ref={mobileMenuButtonRef} type="button" className="chrome-icon-button mobile-menu-button" onClick={onMenuClick} aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileNavOpen} aria-controls="primary-navigation">{mobileNavOpen ? <X size={19} /> : <Menu size={19} />}</button>
       <div className="topbar-heading">
-        <span className="topbar-crumb">Fudz Hub <ChevronRight size={13} /> <span>{role === "admin" ? "Platform" : "Workspace"}</span></span>
+        <span className="topbar-crumb">FoGo Merchant <ChevronRight size={13} /> <span>{role === "admin" ? "Platform" : "Workspace"}</span></span>
         <strong>{pageTitle}</strong>
       </div>
       <label className="command-search">

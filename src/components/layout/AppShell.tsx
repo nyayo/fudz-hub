@@ -23,7 +23,7 @@ export function AppShell() {
           <Outlet />
         </main>
         <footer className="workspace-footer">
-          <span>Fudz Hub Operations</span>
+          <span>FoGo Merchant Operations</span>
           <span>Service, simplified.</span>
         </footer>
       </div>

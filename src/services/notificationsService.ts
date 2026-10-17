@@ -33,7 +33,7 @@ export async function markAllNotificationsRead(): Promise<void> {
 
 export async function sendTestNotification(): Promise<{ success: boolean; message: string }> {
   const { data } = await api.post<{ success: boolean; message: string }>("/users/auth/notification/test/", {
-    title: "Fudz Hub test",
+    title: "FoGo Merchant test",
     message: "Your notification connection is ready.",
     data: { source: "dashboard-test" },
   });

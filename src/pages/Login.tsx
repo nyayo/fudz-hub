@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -108,10 +108,10 @@ export default function Login() {
   return (
     <main className="auth-screen">
       <div className="auth-shell">
-        <section className="auth-brand-panel" aria-label="About Fudz Hub">
+        <section className="auth-brand-panel" aria-label="About FoGo Merchant">
           <div className="auth-brand-top">
-            <div className="auth-brand-mark"><UtensilsCrossed size={21} /></div>
-            <div className="auth-brand-name"><strong>fudz<span>hub</span></strong><small>RESTAURANT OPERATIONS</small></div>
+            <div className="auth-brand-logo"><img src="/logo.png" alt="FoGo" width={96} height={47} /></div>
+            <div className="auth-brand-name"><strong>Merchant</strong><small>RESTAURANT OPERATIONS</small></div>
           </div>
 
           <div className="auth-brand-copy">
@@ -130,14 +130,14 @@ export default function Login() {
             <div className="auth-preview-row"><span className="auth-preview-bullet"><ClipboardList size={13} /></span><span>New order received<small>Pickup · 4 items</small></span><span className="auth-preview-state">In queue</span></div>
             <div className="auth-preview-row"><span className="auth-preview-bullet"><BadgeCheck size={13} /></span><span>Kitchen handoff<small>Team status · Ready</small></span><span className="auth-preview-state">On track</span></div>
           </div>
-          <div className="auth-brand-bottom">© {new Date().getFullYear()} Fudz Hub · Built for the rhythm of service</div>
+          <div className="auth-brand-bottom">© {new Date().getFullYear()} FoGo Merchant · Built for the rhythm of service</div>
         </section>
 
         <section className={`auth-form-panel${step === "register" ? " is-registering" : ""}`}>
           <div className={`auth-form-wrap${step === "register" ? " is-wide" : ""}`}>
             <div className="auth-mobile-brand">
-              <span className="auth-brand-mark"><UtensilsCrossed size={17} /></span>
-              <strong>fudz<span>hub</span></strong>
+              <img className="auth-mobile-logo" src="/logo.png" alt="FoGo" width={84} height={41} />
+              <span className="auth-mobile-tag">MERCHANT</span>
             </div>
 
             <div className="auth-progress" aria-label={`Step ${activeStep} of 3`}>
@@ -156,13 +156,12 @@ export default function Login() {
 
             {step === "email" ? (
               <>
-                <div className="auth-form-heading"><span className="auth-eyebrow">Your operations space</span><h2>Sign in to Fudz Hub</h2><p>Use your work email for a secure one-time code. New restaurant owners can start their application here.</p></div>
+                <div className="auth-form-heading"><span className="auth-eyebrow">Your operations space</span><h2>Sign in to FoGo Merchant</h2><p>Use your work email for a secure one-time code. New restaurant owners can start their application here.</p></div>
                 <form onSubmit={handleEmailSubmit} className="auth-form">
                   <div className="auth-field"><label htmlFor="email">Work email</label><input id="email" type="email" autoComplete="email" autoFocus placeholder="you@restaurant.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></div>
                   <button type="submit" className="auth-primary-action" disabled={requestMutation.isPending || !email.trim()}>{requestMutation.isPending ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : <>Continue with email <ArrowRight size={16} /></>}</button>
                 </form>
                 <p className="auth-form-note"><ShieldCheck size={13} /> Your workspace is protected with a secure one-time verification code.</p>
-                <Link className="auth-secondary-action" to="/admin/login">Platform administrator sign in</Link>
               </>
             ) : step === "otp" ? (
               <>
