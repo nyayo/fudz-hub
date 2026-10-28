@@ -28,6 +28,7 @@ export default function Login() {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+  const [registrationToken, setRegistrationToken] = useState("");
   const [resendIn, setResendIn] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState<LatLngTuple | null>(null);
   const [registration, setRegistration] = useState({ first_name: "", last_name: "", restaurant_name: "", business_license: "", address: "", password: "", password2: "" });
@@ -51,6 +52,7 @@ export default function Login() {
   const requestMutation = useMutation({
     mutationFn: requestOtp,
     onSuccess: () => {
+      setRegistrationToken("");
       setStep("otp");
       setResendIn(45);
       toast({ title: "Code sent", description: `We sent a sign-in code to ${email}.` });
@@ -62,10 +64,11 @@ export default function Login() {
     mutationFn: () => verifyOtp(email, otp),
     onSuccess: (data) => {
       if (!data.user_exists || data.requires_registration || !data.tokens || !data.user) {
+        setRegistrationToken(data.registration_token ?? "");
         setStep("register");
         return;
       }
-      loginWithTokens(data.user, data.tokens.access, data.tokens.refresh);
+      loginWithTokens(data.user, data.tokens.access);
       toast({ title: "You're signed in", description: data.user.email });
       const destination = requestedDestination ?? (data.user.is_staff || data.user.is_superuser ? "/admin" : "/dashboard");
       navigate(destination, { replace: true });
@@ -78,6 +81,7 @@ export default function Login() {
       if (!selectedLocation) throw new Error("Choose the restaurant location on the map before submitting.");
       return registerRestaurant({
         ...registration,
+        registration_token: registrationToken,
         address: registration.address.trim(),
         email,
         user_type: "restaurant",
@@ -87,7 +91,7 @@ export default function Login() {
     },
     onSuccess: (data) => {
       if (!data.user || !data.tokens) return;
-      loginWithTokens(data.user, data.tokens.access, data.tokens.refresh);
+      loginWithTokens(data.user, data.tokens.access);
       toast({ title: "Restaurant application submitted", description: "Your profile is ready. Platform approval may be required before operations open." });
       navigate(requestedDestination && !requestedDestination.startsWith("/admin") ? requestedDestination : "/dashboard", { replace: true });
     },

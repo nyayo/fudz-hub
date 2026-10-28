@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, establishBrowserSession } from "@/lib/api";
 import type { AuthUser } from "@/contexts/AuthContext";
 
 export interface VerifyOtpResponse {
@@ -6,13 +6,15 @@ export interface VerifyOtpResponse {
   verified: boolean;
   user_exists: boolean;
   requires_registration: boolean;
+  registration_token?: string;
   user?: AuthUser;
   email?: string;
-  tokens?: { access: string; refresh: string };
+  tokens?: { access: string; refresh?: string };
   can_link_google?: boolean;
 }
 
 export interface RegisterPayload {
+  registration_token: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -54,17 +56,17 @@ export interface UserProfile {
 export interface AuthTokenResponse {
   message: string;
   user: AuthUser;
-  tokens: { access: string; refresh: string };
+  tokens: { access: string; refresh?: string };
 }
 
 export async function adminLogin(email: string, password: string): Promise<AuthTokenResponse> {
   const { data } = await api.post<AuthTokenResponse>("/users/auth/admin/login/", { email, password });
-  return data;
+  return browserCredentials(data);
 }
 
 export async function activateInvitation(payload: { uidb64: string; token: string; password: string; confirm_password: string }): Promise<AuthTokenResponse> {
   const { data } = await api.post<AuthTokenResponse>("/users/auth/invitations/activate/", payload);
-  return data;
+  return browserCredentials(data);
 }
 
 export async function requestOtp(email: string) {
@@ -74,16 +76,12 @@ export async function requestOtp(email: string) {
 
 export async function verifyOtp(email: string, otp: string): Promise<VerifyOtpResponse> {
   const { data } = await api.post<VerifyOtpResponse>("/users/auth/verify-otp/", { email, otp });
-  return data;
+  return browserCredentials(data);
 }
 
 export async function registerRestaurant(payload: RegisterPayload): Promise<VerifyOtpResponse> {
   const { data } = await api.post<VerifyOtpResponse>("/users/auth/register/", payload);
-  return data;
-}
-
-export async function logoutApi(refreshToken: string): Promise<void> {
-  await api.post("/users/auth/logout/", { refresh_token: refreshToken });
+  return browserCredentials(data);
 }
 
 export async function getUserProfile(): Promise<UserProfile> {
@@ -103,5 +101,14 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 
 export async function updateNotificationPreferences(payload: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
   const { data } = await api.patch<NotificationPreferences>("/users/auth/notification-preferences/", payload);
+  return data;
+}
+
+async function browserCredentials<T extends { tokens?: { access: string; refresh?: string } }>(data: T): Promise<T> {
+  if (data.tokens?.refresh) {
+    await establishBrowserSession(data.tokens.access, data.tokens.refresh);
+    // Do not retain refresh credentials in React mutation results or auth state.
+    delete data.tokens.refresh;
+  }
   return data;
 }

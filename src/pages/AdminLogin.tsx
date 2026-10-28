@@ -23,7 +23,7 @@ export default function AdminLogin() {
   const mutation = useMutation({
     mutationFn: () => adminLogin(email.trim(), password),
     onSuccess: (data) => {
-      loginWithTokens(data.user, data.tokens.access, data.tokens.refresh);
+      loginWithTokens(data.user, data.tokens.access);
       toast({ title: "Admin access granted", description: data.user.email });
       navigate("/admin", { replace: true });
     },

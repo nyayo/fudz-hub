@@ -97,3 +97,13 @@ export async function disableBrowserPush() {
   await subscription.unsubscribe();
   return { success: true, unsubscribed: true };
 }
+/** Detach locally even when the API is unavailable; logout revokes the device row. */
+export async function detachBrowserPush(): Promise<string | undefined> {
+  if (!browserSupportsPush()) return undefined;
+  const registration = await navigator.serviceWorker.getRegistration("/");
+  const subscription = await registration?.pushManager.getSubscription();
+  if (!subscription) return undefined;
+  const endpoint = subscription.endpoint;
+  try { await subscription.unsubscribe(); } catch { /* Server-side device revocation still receives the endpoint. */ }
+  return endpoint;
+}

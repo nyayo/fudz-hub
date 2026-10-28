@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
-import { tokenStorage } from "@/lib/api";
-import { getUserProfile, logoutApi } from "@/services/authService";
+import { tokenStorage, clearLegacySession, restoreBrowserSession, endBrowserSession } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { detachBrowserPush } from "@/services/webPushService";
+import { toast } from "@/hooks/use-toast";
+import { getUserProfile } from "@/services/authService";
 
 export type UserRole = "admin" | "staff" | string;
 
@@ -30,13 +33,11 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   role: UserRole;
-  loginWithTokens: (user: AuthUser, access: string, refresh?: string) => void;
+  loginWithTokens: (user: AuthUser, access: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const USER_KEY = "fudz_user";
 
 function deriveRole(user: AuthUser | null): UserRole {
   if (!user) return "guest";
@@ -52,48 +53,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     let cancelled = false;
+    clearLegacySession();
     const restoreSession = async () => {
-      let cached: AuthUser | null = null;
       try {
-        const raw = localStorage.getItem(USER_KEY);
-        const access = tokenStorage.getAccess();
-        if (raw && access) {
-          cached = JSON.parse(raw) as AuthUser;
-          setUser(cached);
-        }
+        const access = await restoreBrowserSession();
+        if (!access || cancelled) return;
+        const fresh = await getUserProfile();
+        if (!cancelled && tokenStorage.getAccess() === access) setUser({ ...fresh } as AuthUser);
       } catch {
-        // Fall back to an unauthenticated session if local data is malformed.
+        // A session is authenticated only after the API validates it.
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-
-      if (cached) {
-        try {
-          const fresh = await getUserProfile();
-          const nextUser = { ...cached, ...fresh } as AuthUser;
-          delete nextUser.role;
-          if (!cancelled) {
-            localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
-            setUser(nextUser);
-          }
-        } catch {
-          // Retain a valid cached session if the profile endpoint is temporarily unavailable.
-        }
-      }
-      if (!cancelled) setIsLoading(false);
     };
-
     void restoreSession();
     return () => { cancelled = true; };
   }, []);
 
   const logout = useCallback(() => {
-    const refresh = tokenStorage.getRefresh();
-    if (refresh) void logoutApi(refresh).catch(() => undefined);
-    tokenStorage.clear();
-    localStorage.removeItem(USER_KEY);
+    void queryClient.cancelQueries();
+    queryClient.clear();
     setUser(null);
-  }, []);
+    void endBrowserSession(detachBrowserPush).catch(() => {
+      toast({ title: "Server sign-out could not be confirmed", description: "Your local session was cleared. Reconnect and sign out again to revoke the browser session.", variant: "destructive" });
+    });
+  }, [queryClient]);
 
   useEffect(() => {
     const handler = () => logout();
@@ -101,11 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("fudz:logout", handler);
   }, [logout]);
 
-  const loginWithTokens = useCallback((nextUser: AuthUser, access: string, refresh?: string) => {
-    tokenStorage.set(access, refresh);
-    localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+  const loginWithTokens = useCallback((nextUser: AuthUser, access: string) => {
+    void queryClient.cancelQueries();
+    queryClient.clear();
+    tokenStorage.set(access);
     setUser(nextUser);
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

@@ -30,7 +30,7 @@ export default function ActivateInvitation() {
         confirm_password: confirm,
       }),
     onSuccess: (data) => {
-      loginWithTokens(data.user, data.tokens.access, data.tokens.refresh);
+      loginWithTokens(data.user, data.tokens.access);
       toast({
         title: "Account activated",
         description: "Your restaurant workspace is ready.",
