@@ -1,3 +1,5 @@
+import { FieldError, FormError } from "@/components/workspace/FormFeedback";
+import { apiFieldErrors, focusApiError } from "@/lib/form-errors";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,7 @@ const empty: MenuItemPayload = {
 
 export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props) {
   const qc = useQueryClient();
+  const formRef = useRef<HTMLFormElement>(null);
   const [form, setForm] = useState<MenuItemPayload>(empty);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -87,8 +90,10 @@ export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props
       toast({ title: item ? "Item updated" : "Item created" });
       onOpenChange(false);
     },
-    onError: (err) =>
-      toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+    onError: (err) => {
+      focusApiError(err, formRef.current);
+      toast({ title: "Check the form", description: extractApiError(err), variant: "destructive" });
+    },
   });
 
   const uploadMutation = useMutation({
@@ -101,9 +106,12 @@ export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props
       toast({ title: "Upload failed", description: extractApiError(err), variant: "destructive" }),
   });
 
+  const fieldErrors = apiFieldErrors(mutation.error);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!mutation.isPending) { if (!value) mutation.reset(); onOpenChange(value); } }}>
       <DialogContent className="max-w-lg">
+        <form ref={formRef} className="dialog-form" onSubmit={event => { event.preventDefault(); mutation.mutate(); }}>
         <DialogHeader>
           <DialogTitle>{item ? "Edit menu item" : "New menu item"}</DialogTitle>
           <DialogDescription>Fill in the details below.</DialogDescription>
@@ -112,10 +120,10 @@ export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props
           <div className="grid gap-2">
             <Label htmlFor="title">Title</Label>
             <Input
-              id="title"
+              id="title" name="title" required aria-invalid={!!fieldErrors.title} aria-describedby="menu-title-error"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
+            /><FieldError id="menu-title-error" message={fieldErrors.title} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
@@ -130,20 +138,21 @@ export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props
             <div className="grid gap-2">
               <Label htmlFor="price">Price</Label>
               <Input
-                id="price"
+                id="price" name="price" required aria-invalid={!!fieldErrors.price} aria-describedby="menu-price-error"
                 type="number"
                 step="0.01"
+                min="0"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-              />
+              /><FieldError id="menu-price-error" message={fieldErrors.price} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="category">Category</Label>
-              <Select
+              <Select name="category" required
                 value={form.category ? String(form.category) : ""}
                 onValueChange={(v) => setForm({ ...form, category: Number(v) })}
               >
-                <SelectTrigger id="category">
+                <SelectTrigger id="category" data-field="category" aria-invalid={!!fieldErrors.category} aria-describedby="menu-category-error">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
@@ -154,13 +163,14 @@ export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError id="menu-category-error" message={fieldErrors.category} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="prep">Prep time (min)</Label>
               <Input
-                id="prep"
+                id="prep" name="prep_time_minutes" min="0" step="1"
                 type="number"
                 value={form.prep_time_minutes ?? ""}
                 onChange={(e) =>
@@ -182,20 +192,20 @@ export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <Label>Available</Label>
+              <Label htmlFor="menu-available">Available</Label>
               <p className="text-xs text-muted-foreground">Show on customer menu</p>
             </div>
-            <Switch
+            <Switch id="menu-available"
               checked={form.is_available}
               onCheckedChange={(v) => setForm({ ...form, is_available: v })}
             />
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <Label>Featured</Label>
+              <Label htmlFor="menu-featured">Featured</Label>
               <p className="text-xs text-muted-foreground">Highlight as a featured item</p>
             </div>
-            <Switch
+            <Switch id="menu-featured"
               checked={form.is_featured}
               onCheckedChange={(v) => setForm({ ...form, is_featured: v })}
             />
@@ -228,17 +238,19 @@ export function MenuItemDialog({ open, onOpenChange, item, restaurantId }: Props
             </div>
           )}
         </div>
+        <FormError error={mutation.error} />
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => { mutation.reset(); onOpenChange(false); }}>
             Cancel
           </Button>
           <Button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !form.title || !form.category || !form.price}
+            type="submit"
+            disabled={mutation.isPending || !form.title.trim() || !form.category || !form.price}
           >
             {mutation.isPending ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

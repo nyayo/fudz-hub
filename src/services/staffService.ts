@@ -2,9 +2,9 @@ import { api } from "@/lib/api";
 import type { Paginated } from "@/types/orders";
 import type { StaffCreatePayload, StaffMember, StaffUpdatePayload } from "@/types/staff";
 
-export async function listStaff(params: { page?: number; restaurant_id?: number } = {}): Promise<Paginated<StaffMember>> {
+export async function listStaff(params: { page?: number; restaurant_id?: number; search?: string } = {}): Promise<Paginated<StaffMember>> {
   const { data } = await api.get<Paginated<StaffMember>>("/users/auth/staff/", {
-    params: { page: params.page, restaurant_id: params.restaurant_id },
+    params: { page: params.page, restaurant_id: params.restaurant_id, search: params.search || undefined },
   });
   return data;
 }

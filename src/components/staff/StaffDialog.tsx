@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { FieldError, FormError } from "@/components/workspace/FormFeedback";
+import { apiFieldErrors, focusApiError } from "@/lib/form-errors";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +40,7 @@ interface Props {
 
 export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) {
   const qc = useQueryClient();
+  const formRef = useRef<HTMLFormElement>(null);
   const isEdit = !!staff;
 
   const [email, setEmail] = useState("");
@@ -83,17 +86,22 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
       toast({ title: isEdit ? "Staff updated" : "Staff invited" });
       onOpenChange(false);
     },
-    onError: (err) =>
-      toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+    onError: (err) => {
+      focusApiError(err, formRef.current);
+      toast({ title: "Check the form", description: extractApiError(err), variant: "destructive" });
+    },
   });
 
   const canSubmit = isEdit
     ? true
     : email.trim() && firstName.trim() && lastName.trim() && restaurantId;
 
+  const fieldErrors = apiFieldErrors(mutation.error);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!mutation.isPending) { if (!value) mutation.reset(); onOpenChange(value); } }}>
       <DialogContent className="max-w-md">
+        <form ref={formRef} className="dialog-form" onSubmit={event => { event.preventDefault(); mutation.mutate(); }}>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit staff member" : "Invite staff"}</DialogTitle>
           <DialogDescription>
@@ -109,21 +117,21 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label htmlFor="fname">First name</Label>
-                  <Input id="fname" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                  <Input id="fname" name="first_name" required aria-invalid={!!fieldErrors.first_name} aria-describedby="fname-error" value={firstName} onChange={(e) => setFirstName(e.target.value)} /><FieldError id="fname-error" message={fieldErrors.first_name} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="lname">Last name</Label>
-                  <Input id="lname" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                  <Input id="lname" name="last_name" required aria-invalid={!!fieldErrors.last_name} aria-describedby="lname-error" value={lastName} onChange={(e) => setLastName(e.target.value)} /><FieldError id="lname-error" message={fieldErrors.last_name} />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
-                  id="email"
+                  id="email" name="email" required aria-invalid={!!fieldErrors.email} aria-describedby="email-error"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                />
+                /><FieldError id="email-error" message={fieldErrors.email} />
               </div>
               <p className="text-xs text-muted-foreground">An activation link will be emailed to this address. They will choose their password before they can sign in.</p>
             </>
@@ -131,7 +139,7 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
 
           <div className="grid gap-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as StaffRole)}>
+            <Select name="role" value={role} onValueChange={(v) => setRole(v as StaffRole)}>
               <SelectTrigger id="role">
                 <SelectValue />
               </SelectTrigger>
@@ -154,12 +162,14 @@ export function StaffDialog({ open, onOpenChange, restaurantId, staff }: Props) 
           </div>
         </div>
 
+        <FormError error={mutation.error} />
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => mutation.mutate()} disabled={!canSubmit || mutation.isPending}>
+          <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => { mutation.reset(); onOpenChange(false); }}>Cancel</Button>
+          <Button type="submit" disabled={!canSubmit || mutation.isPending}>
             {mutation.isPending ? "Saving..." : isEdit ? "Save changes" : "Invite"}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

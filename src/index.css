@@ -18,7 +18,7 @@
     --secondary: 30 80% 92%; /* #FBEBDB */
     --secondary-foreground: 262 55% 27%; /* #3B1F6B */
     --muted: 31 70% 94%; /* #FAEFE3 */
-    --muted-foreground: 26 13% 42%; /* #7A6A5E */
+    --muted-foreground: 26 13% 32%; /* #7A6A5E */
     --accent: 29 100% 92%; /* #FFEAD6 */
     --accent-foreground: 25 100% 32%; /* #A34300 */
     --destructive: 353 66% 53%; /* #D6384A */
@@ -28,8 +28,8 @@
     --warning: 40 82% 50%; /* #E8A317 */
     --warning-foreground: 259 35% 16%; /* #231A36 */
     --border: 31 38% 87%; /* #EBDFD2 */
-    --input: 31 31% 80%; /* #DCCDBD */
-    --ring: 25 100% 50%; /* #FF6B00 */
+    --input: 28 22% 48%; /* #DCCDBD */
+    --ring: 25 100% 32%; /* #FF6B00 */
     --radius: 0.85rem;
     --brand-purple: 262 55% 27%; /* #3B1F6B */
     --brand-cream: 33 100% 96%; /* #FFF7ED */
@@ -53,3 +53,13 @@
 }
 
 #root { min-height: 100vh; }
+/* A single shared focus treatment keeps custom wrappers and native controls aligned. */
+::selection { background: hsl(var(--accent)); color: hsl(var(--foreground)); }
+input, textarea { caret-color: hsl(var(--accent-foreground)); }
+:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+input::placeholder, textarea::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-spin, .animate-pulse { animation: none; }
+  [data-state="open"][role="dialog"], [data-state="closed"][role="dialog"] { animation: none; }
+}

@@ -60,7 +60,7 @@ export default function ActivateInvitation() {
             </div>
           </div>
           <div className="auth-brand-copy">
-            <span className="auth-eyebrow">You’re invited</span>
+
             <h1>
               Start with a<br />
               <span>clear workspace.</span>
@@ -88,7 +88,7 @@ export default function ActivateInvitation() {
             {valid ? (
               <>
                 <div className="auth-form-heading">
-                  <span className="auth-eyebrow">Secure activation</span>
+
                   <h2>Choose your password</h2>
                   <p>
                     Set a password to activate the restaurant workspace created
@@ -156,7 +156,7 @@ export default function ActivateInvitation() {
               </>
             ) : (
               <div className="auth-form-heading">
-                <span className="auth-eyebrow">Invitation unavailable</span>
+
                 <h2>This link is incomplete</h2>
                 <p>
                   Use the activation link from your restaurant invitation email,

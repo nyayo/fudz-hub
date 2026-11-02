@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { Topbar } from "./Topbar";
@@ -20,7 +20,7 @@ export function AppShell() {
       <div className="workspace-main">
         <Topbar mobileNavOpen={mobileNavOpen} onMenuClick={() => setMobileNavOpen((open) => !open)} />
         <main className="workspace-content">
-          <Outlet />
+          <Suspense fallback={<div className="route-loading" role="status">Loading page…</div>}><Outlet /></Suspense>
         </main>
         <footer className="workspace-footer">
           <span>FoGo Merchant Operations</span>

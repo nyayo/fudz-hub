@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, ImageOff, Upload } from "lucide-react";
@@ -47,6 +47,10 @@ import { toast } from "@/hooks/use-toast";
 import { extractApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { pageCount } from "@/lib/query-policy";
+import { QueryError, QueryFreshness } from "@/components/workspace/QueryFeedback";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+
 export default function Menu() {
   const [searchParams] = useSearchParams();
   const { role } = useAuth();
@@ -65,12 +69,13 @@ export default function Menu() {
     queryFn: () => listCategories({ restaurant_id: restaurantId }),
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["menu-items", { page, search, category, restaurantId }],
+  const debouncedSearch = useDebouncedValue(search);
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
+    queryKey: ["menu-items", { page, search: debouncedSearch, category, restaurantId }],
     queryFn: () =>
       listMenuItems({
         page,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         category: category === "all" ? "all" : Number(category),
         restaurant_id: restaurantId,
       }),
@@ -96,10 +101,7 @@ export default function Menu() {
   });
 
   const items = data?.results ?? [];
-  const totalPages = useMemo(
-    () => (data ? Math.max(1, Math.ceil(data.count / Math.max(items.length || 1, 1))) : 1),
-    [data, items.length],
-  );
+  const totalPages = pageCount(data?.count);
 
   const onAdd = () => {
     setEditing(null);
@@ -112,7 +114,7 @@ export default function Menu() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Menu</h1>
           <p className="text-sm text-muted-foreground">
@@ -134,6 +136,7 @@ export default function Menu() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              aria-label="Search menu items"
               placeholder="Search items..."
               className="pl-9"
               value={search}
@@ -150,7 +153,7 @@ export default function Menu() {
               setCategory(v);
             }}
           >
-            <SelectTrigger className="sm:w-56">
+            <SelectTrigger className="sm:w-56" aria-label="Filter by category">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -165,6 +168,7 @@ export default function Menu() {
         </div>
       </Card>
 
+      {data && <QueryFreshness updatedAt={dataUpdatedAt} isFetching={isFetching} isError={isError} onRefresh={() => void refetch()} label="menu" />}
       <Card className="table-card">
         <Table>
           <TableHeader>
@@ -178,7 +182,7 @@ export default function Menu() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isError && !data ? <TableRow><TableCell colSpan={6}><QueryError title="Menu couldn’t be loaded" error={error} onRetry={() => void refetch()} /></TableCell></TableRow> : isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell colSpan={6}>
@@ -224,6 +228,8 @@ export default function Menu() {
                     </TableCell>
                     <TableCell>
                       <Switch
+                        aria-label={`Available: ${item.title}`}
+                        disabled={toggleAvailability.isPending}
                         checked={item.is_available}
                         onCheckedChange={(v) =>
                           toggleAvailability.mutate({ id: item.id, is_available: v })

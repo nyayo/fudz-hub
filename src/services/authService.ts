@@ -89,7 +89,7 @@ export async function getUserProfile(): Promise<UserProfile> {
   return data;
 }
 
-export async function updateUserProfile(payload: Partial<Pick<UserProfile, "phone" | "first_name" | "last_name">>): Promise<UserProfile> {
+export async function updateUserProfile(payload: Partial<Pick<UserProfile, "first_name" | "last_name">>): Promise<UserProfile> {
   const { data } = await api.put<UserProfile>("/users/auth/profile/", payload);
   return data;
 }

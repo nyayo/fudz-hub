@@ -39,7 +39,7 @@ function SettingsPageHeader() {
   return (
     <header className="page-heading account-page-heading">
       <div>
-        <p className="eyebrow">WORKSPACE CONFIGURATION</p>
+
         <h1>Restaurant settings</h1>
         <p>Keep your storefront, business details, and team preferences up to date.</p>
       </div>
@@ -134,7 +134,6 @@ export default function Settings() {
   });
   const restaurant = restaurantQ.data;
   const [form, setForm] = useState<RestaurantPayload>({});
-  const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
@@ -147,7 +146,6 @@ export default function Settings() {
 
   useEffect(() => {
     if (profileQ.data) {
-      setPhone(profileQ.data.phone ?? "");
       setFirstName(profileQ.data.first_name ?? "");
       setLastName(profileQ.data.last_name ?? "");
     }
@@ -189,7 +187,7 @@ export default function Settings() {
   });
 
   const profileMutation = useMutation({
-    mutationFn: () => updateUserProfile({ phone, first_name: firstName, last_name: lastName }),
+    mutationFn: () => updateUserProfile({ first_name: firstName, last_name: lastName }),
     onSuccess: (next) => {
       queryClient.setQueryData(["user-profile"], next);
       toast({ title: "Contact details updated" });
@@ -285,7 +283,7 @@ export default function Settings() {
           )}
         </div>
         <div className="account-overview-copy">
-          <span className="eyebrow">YOUR RESTAURANT WORKSPACE</span>
+
           <strong>{restaurant.restaurant_name}</strong>
           <span className="flex items-center gap-1.5" title={restaurant.address || "Restaurant address not set"}>
             <MapPin size={12} aria-hidden="true" />
@@ -559,13 +557,13 @@ export default function Settings() {
                   <div className="grid gap-2">
                     <Label htmlFor="account-phone">Phone</Label>
                     <Input
-                      id="account-phone"
+                      id="account-phone" readOnly
                       type="tel"
                       autoComplete="tel"
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      placeholder="Add a phone number"
+                      value={profileQ.data?.phone ?? ""}
+                      aria-describedby="settings-phone-help"
                     />
+                    <p id="settings-phone-help" className="text-xs text-muted-foreground">Phone changes require verification and aren’t available in this workspace.</p>
                   </div>
                 </div>
                 <div className="account-panel-footer">

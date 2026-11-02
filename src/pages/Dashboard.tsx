@@ -125,7 +125,7 @@ function getCustomerLabel(review: Review) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [range, setRange] = useState<Range>("7d");
   const restaurantId = user?.profile?.restaurant_id ?? user?.profile?.id;
   const restaurantName = typeof user?.profile?.restaurant_name === "string"
@@ -138,6 +138,9 @@ export default function Dashboard() {
   const orderSampleQ = useQuery({
     queryKey: ["orders", "dashboard-sample", user?.id, restaurantId],
     queryFn: loadOrderSample,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: "always",
     enabled: !!user,
     staleTime: 30_000,
   });
@@ -268,7 +271,7 @@ export default function Dashboard() {
     <div className="modern-dashboard">
       <header className="dash-hero">
         <div className="dash-title-block">
-          <div className="dash-context"><span className="context-pulse" /> RESTAURANT OVERVIEW <span className="context-sep">/</span> {restaurantName.toUpperCase()}</div>
+          <div className="dash-context"><span className="context-pulse" /> {restaurantName}</div>
           <h1>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {firstName}<span>·</span></h1>
           <p>Your day, in motion. Here’s the latest from your restaurant.</p>
         </div>
@@ -278,7 +281,7 @@ export default function Dashboard() {
             <RefreshCw size={15} className={refreshing ? "dashboard-refresh-spinning" : ""} />
             {refreshing ? "Updating" : "Refresh"}
           </Button>
-          <Button asChild className="dash-primary-action"><Link to="/menu"><Plus size={16} /> Add menu item</Link></Button>
+          {role === "owner" ? <Button asChild className="dash-primary-action"><Link to="/menu"><Plus size={16} /> Add menu item</Link></Button> : <Button asChild className="dash-primary-action"><Link to="/orders">View orders <ArrowRight size={16} /></Link></Button>}
         </div>
       </header>
 
@@ -311,7 +314,7 @@ export default function Dashboard() {
         <main className="dashboard-main-column">
           <section className="dashboard-surface trend-surface">
             <div className="surface-heading">
-              <div><span className="surface-kicker">SALES & MOMENTUM</span><h2>Order activity</h2><p>Item sales and tickets · {sampleLabel.toLowerCase()}</p></div>
+              <div><h2>Order activity</h2><p>Item sales and tickets · {sampleLabel.toLowerCase()}</p></div>
               <div className="range-switch" role="group" aria-label="Chart date range">
                 <button className={range === "7d" ? "selected" : ""} onClick={() => setRange("7d")} aria-pressed={range === "7d"}>7 days</button>
                 <button className={range === "30d" ? "selected" : ""} onClick={() => setRange("30d")} aria-pressed={range === "30d"}>30 days</button>
@@ -328,8 +331,8 @@ export default function Dashboard() {
                       <linearGradient id="salesWash" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#FF6B00" stopOpacity={0.18} /><stop offset="95%" stopColor="#FF6B00" stopOpacity={0} /></linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 5" />
-                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} dy={8} />
-                    <YAxis yAxisId="sales" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={(value: number) => value === 0 ? "0" : value >= 1000 ? `${Number((value / 1000).toFixed(value >= 10_000 ? 0 : 1))}k` : String(Math.round(value))} />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} dy={8} />
+                    <YAxis yAxisId="sales" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickFormatter={(value: number) => value === 0 ? "0" : value >= 1000 ? `${Number((value / 1000).toFixed(value >= 10_000 ? 0 : 1))}k` : String(Math.round(value))} />
                     <YAxis yAxisId="orders" orientation="right" hide domain={[0, "dataMax + 2"]} />
                     <Tooltip
                       cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "3 4", strokeOpacity: 0.35 }}
@@ -353,7 +356,7 @@ export default function Dashboard() {
 
           <section className="dashboard-surface recent-surface">
             <div className="surface-heading recent-heading">
-              <div><span className="surface-kicker">INCOMING TICKETS</span><h2>Recent orders <span className="inline-count">{orderLoading || orderFatalError ? "—" : latestTotal}</span></h2><p>Newest orders from your permitted workspace.</p></div>
+              <div><h2>Recent orders <span className="inline-count">{orderLoading || orderFatalError ? "—" : latestTotal}</span></h2><p>Newest orders from your permitted workspace.</p></div>
               <Button asChild variant="ghost" className="text-action"><Link to="/orders">View all <ArrowRight size={15} /></Link></Button>
             </div>
             <div className="recent-order-list">
@@ -374,7 +377,7 @@ export default function Dashboard() {
 
         <aside className="dashboard-side-column">
           <section className="dashboard-surface menu-surface">
-            <div className="side-heading"><div><span className="surface-kicker">CATALOG HEALTH</span><h2>Menu pulse</h2></div><Link to="/menu" className="icon-link" aria-label="Manage menu"><MoreHorizontal size={18} /></Link></div>
+            <div className="side-heading"><div><h2>Menu pulse</h2></div><Link to="/menu" className="icon-link" aria-label="Manage menu"><MoreHorizontal size={18} /></Link></div>
             {!restaurantId ? <div className="side-empty">Restaurant profile details aren’t available for this account.</div> : !menuReady && (menuAvailableQ.isLoading || menuUnavailableQ.isLoading) ? (
               <div className="dashboard-side-loading"><span className="loading-mark" /> Loading menu availability…</div>
             ) : !menuReady && menuHasError ? (
@@ -396,7 +399,7 @@ export default function Dashboard() {
           </section>
 
           <section className="dashboard-surface promo-surface">
-            <div className="side-heading"><div><span className="surface-kicker">WHAT’S ON</span><h2>Promotions</h2></div><span className="promo-count">{!restaurantId || promotionsQ.isLoading || (promotionsQ.isError && !promotionsQ.data) ? "—" : `${activePromotions.length} live`}</span></div>
+            <div className="side-heading"><div><h2>Promotions</h2></div><span className="promo-count">{!restaurantId || promotionsQ.isLoading || (promotionsQ.isError && !promotionsQ.data) ? "—" : `${activePromotions.length} live`}</span></div>
             {!restaurantId ? <div className="side-empty">Promotion details require a restaurant profile.</div> : promotionsQ.isLoading && !promotionsQ.data ? (
               <div className="dashboard-side-loading"><span className="loading-mark" /> Loading promotions…</div>
             ) : promotionsQ.isError && !promotionsQ.data ? (
@@ -413,7 +416,7 @@ export default function Dashboard() {
           </section>
 
           <section className="dashboard-surface review-surface">
-            <div className="side-heading"><div><span className="surface-kicker">CUSTOMER VOICE</span><h2>Recent feedback</h2></div><MessageSquareText size={17} className="side-heading-icon" /></div>
+            <div className="side-heading"><div><h2>Recent feedback</h2></div><MessageSquareText size={17} className="side-heading-icon" /></div>
             {!restaurantId ? <div className="side-empty">Restaurant-specific reviews are hidden until this account has a restaurant profile.</div> : (
               <>
                 <div className="review-summary">
@@ -436,7 +439,7 @@ export default function Dashboard() {
           </section>
 
           <section className="quick-links">
-            <span className="surface-kicker">QUICK ACCESS</span>
+
             <Link to="/deliveries"><PackageCheck size={16} /> Deliveries <ArrowRight size={14} /></Link>
             <Link to="/analytics"><Activity size={16} /> Full analytics <ArrowRight size={14} /></Link>
             <Link to="/settings"><BadgeCheck size={16} /> Restaurant settings <ArrowRight size={14} /></Link>

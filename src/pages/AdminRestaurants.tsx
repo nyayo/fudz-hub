@@ -168,7 +168,7 @@ export default function AdminRestaurants() {
     <div className="page-stack max-w-7xl">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">PLATFORM MANAGEMENT</p>
+
           <h1>Restaurants</h1>
           <p>
             Review profiles, approve onboarding, and manage each restaurant from

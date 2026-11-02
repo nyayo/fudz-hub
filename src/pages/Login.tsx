@@ -119,7 +119,7 @@ export default function Login() {
           </div>
 
           <div className="auth-brand-copy">
-            <span className="auth-eyebrow">One calmer way to run service</span>
+
             <h1>Good service.<br />Clear <span>control.</span></h1>
             <p>Bring the moving parts of your restaurant together—from the first order to the final handoff.</p>
             <div className="auth-capabilities">
@@ -160,7 +160,7 @@ export default function Login() {
 
             {step === "email" ? (
               <>
-                <div className="auth-form-heading"><span className="auth-eyebrow">Your operations space</span><h2>Sign in to FoGo Merchant</h2><p>Use your work email for a secure one-time code. New restaurant owners can start their application here.</p></div>
+                <div className="auth-form-heading"><h2>Sign in to FoGo Merchant</h2><p>Use your work email for a secure one-time code. New restaurant owners can start their application here.</p></div>
                 <form onSubmit={handleEmailSubmit} className="auth-form">
                   <div className="auth-field"><label htmlFor="email">Work email</label><input id="email" type="email" autoComplete="email" autoFocus placeholder="you@restaurant.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></div>
                   <button type="submit" className="auth-primary-action" disabled={requestMutation.isPending || !email.trim()}>{requestMutation.isPending ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : <>Continue with email <ArrowRight size={16} /></>}</button>
@@ -179,7 +179,7 @@ export default function Login() {
               </>
             ) : (
               <>
-                <div className="auth-form-heading"><button type="button" className="auth-back-action" onClick={() => setStep("otp")}><ArrowLeft size={14} /> Back to verification</button><span className="auth-eyebrow">Restaurant application</span><h2>Set up your restaurant</h2><p>Your email is verified. Add your business details and pin the pickup point on the map.</p></div>
+                <div className="auth-form-heading"><button type="button" className="auth-back-action" onClick={() => setStep("otp")}><ArrowLeft size={14} /> Back to verification</button><h2>Set up your restaurant</h2><p>Your email is verified. Add your business details and pin the pickup point on the map.</p></div>
                 <form onSubmit={(event) => { event.preventDefault(); registerMutation.mutate(); }} className="auth-form auth-registration-form">
                   <div className="auth-registration-grid">
                     <div className="auth-field"><label htmlFor="first-name">Owner first name</label><input id="first-name" autoComplete="given-name" value={registration.first_name} onChange={(event) => setRegistration({ ...registration, first_name: event.target.value })} required /></div>

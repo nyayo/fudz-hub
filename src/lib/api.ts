@@ -22,6 +22,7 @@ export function clearLegacySession() {
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 20_000,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -140,6 +141,8 @@ export function extractApiError(err: unknown, fallback = "Something went wrong")
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as Record<string, unknown> | undefined;
     if (data) {
+      const envelope = data.error;
+      if (envelope && typeof envelope === "object" && "message" in envelope && typeof envelope.message === "string") return envelope.message;
       if (typeof data.detail === "string") return data.detail;
       if (typeof data.message === "string") return data.message;
       const firstField = Object.values(data)[0];

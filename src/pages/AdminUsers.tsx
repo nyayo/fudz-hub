@@ -123,7 +123,7 @@ export default function AdminUsers() {
     <div className="page-stack max-w-7xl admin-users-page">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">PLATFORM MANAGEMENT</p>
+
           <h1>Users</h1>
           <p>
             Manage account access and verification. Platform-admin identities
@@ -295,7 +295,7 @@ export default function AdminUsers() {
                           >
                             <BadgeCheck size={14} />
                           </IconButton>
-                        
+
                           <IconButton
                             size="sm"
                             variant={u.is_active ? "outline" : "secondary"}
@@ -307,7 +307,7 @@ export default function AdminUsers() {
                           >
                             {u.is_active ? <UserRoundX size={14} /> : <UserRoundCheck size={14} />}
                           </IconButton>
-                        
+
                           <IconButton
                             label={`Delete ${displayName}`}
                             tooltip={

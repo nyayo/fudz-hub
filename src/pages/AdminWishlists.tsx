@@ -63,7 +63,7 @@ export default function AdminWishlists() {
     <div className="page-stack max-w-7xl">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">PLATFORM MANAGEMENT</p>
+
           <h1>Wishlists</h1>
           <p>
             Search saved menu items across customers and restaurants. Customer

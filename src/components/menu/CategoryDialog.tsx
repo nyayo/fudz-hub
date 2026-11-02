@@ -1,9 +1,12 @@
+import { FieldError, FormError } from "@/components/workspace/FormFeedback";
+import { apiFieldErrors, focusApiError } from "@/lib/form-errors";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -30,6 +33,7 @@ const empty: CategoryPayload = { name: "", description: "", position: 0, is_acti
 
 export function CategoryDialog({ open, onOpenChange, category, restaurantId }: Props) {
   const qc = useQueryClient();
+  const formRef = useRef<HTMLFormElement>(null);
   const [form, setForm] = useState<CategoryPayload>(empty);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -56,8 +60,10 @@ export function CategoryDialog({ open, onOpenChange, category, restaurantId }: P
       toast({ title: category ? "Category updated" : "Category created" });
       onOpenChange(false);
     },
-    onError: (err) =>
-      toast({ title: "Error", description: extractApiError(err), variant: "destructive" }),
+    onError: (err) => {
+      focusApiError(err, formRef.current);
+      toast({ title: "Check the form", description: extractApiError(err), variant: "destructive" });
+    },
   });
 
   const uploadMutation = useMutation({
@@ -70,20 +76,24 @@ export function CategoryDialog({ open, onOpenChange, category, restaurantId }: P
       toast({ title: "Upload failed", description: extractApiError(err), variant: "destructive" }),
   });
 
+  const fieldErrors = apiFieldErrors(mutation.error);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!mutation.isPending) { if (!value) mutation.reset(); onOpenChange(value); } }}>
       <DialogContent className="max-w-md">
+        <form ref={formRef} className="dialog-form" onSubmit={event => { event.preventDefault(); mutation.mutate(); }}>
         <DialogHeader>
           <DialogTitle>{category ? "Edit category" : "New category"}</DialogTitle>
+          <DialogDescription>Group menu items so customers can find them easily.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label htmlFor="name">Name</Label>
             <Input
-              id="name"
+              id="name" name="name" required aria-invalid={!!fieldErrors.name} aria-describedby="category-name-error"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
+            /><FieldError id="category-name-error" message={fieldErrors.name} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
@@ -97,15 +107,15 @@ export function CategoryDialog({ open, onOpenChange, category, restaurantId }: P
           <div className="grid gap-2">
             <Label htmlFor="position">Position</Label>
             <Input
-              id="position"
+              id="position" name="position" min="0" step="1"
               type="number"
               value={form.position}
               onChange={(e) => setForm({ ...form, position: Number(e.target.value) })}
             />
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">
-            <Label>Active</Label>
-            <Switch
+            <Label htmlFor="category-active">Active</Label>
+            <Switch id="category-active"
               checked={form.is_active}
               onCheckedChange={(v) => setForm({ ...form, is_active: v })}
             />
@@ -138,12 +148,14 @@ export function CategoryDialog({ open, onOpenChange, category, restaurantId }: P
             </div>
           )}
         </div>
+        <FormError error={mutation.error} />
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.name}>
+          <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => { mutation.reset(); onOpenChange(false); }}>Cancel</Button>
+          <Button type="submit" disabled={mutation.isPending || !form.name.trim()}>
             {mutation.isPending ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

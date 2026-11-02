@@ -156,7 +156,7 @@ export default function Analytics() {
   return (
     <div className="page-stack analytics-page">
       <header className="page-heading analytics-heading">
-        <div><p className="eyebrow">BUSINESS INTELLIGENCE</p><h1>Analytics</h1><p>Understand order volume, revenue and service patterns at a glance.</p></div>
+        <div><h1>Analytics</h1><p>Understand order volume, revenue and service patterns at a glance.</p></div>
         <Tabs value={range} onValueChange={(value) => setRange(value as RangeKey)}>
           <TabsList className="orders-status-tabs"><TabsTrigger value="7d">7 days</TabsTrigger><TabsTrigger value="30d">30 days</TabsTrigger><TabsTrigger value="90d">90 days</TabsTrigger></TabsList>
         </Tabs>
@@ -171,7 +171,7 @@ export default function Analytics() {
 
       <section className="analytics-chart-grid analytics-chart-grid-primary">
         <Card className="analytics-chart-card">
-          <div className="analytics-chart-heading"><div><span className="eyebrow">PERFORMANCE TREND</span><h2>Revenue & orders</h2><p>Day-by-day activity for the selected period.</p></div><span className="analytics-heading-icon"><BarChart3 size={16}/></span></div>
+          <div className="analytics-chart-heading"><div><h2>Revenue & orders</h2><p>Day-by-day activity for the selected period.</p></div><span className="analytics-heading-icon"><BarChart3 size={16}/></span></div>
           <div className="analytics-chart-body">
             {isLoading ? <Skeleton className="h-full w-full"/> : failedWithoutData ? <ChartEmptyState>Order data could not be loaded.</ChartEmptyState> : daily.every((row) => row.orders === 0) ? <ChartEmptyState/> : <ResponsiveContainer width="100%" height="100%"><LineChart data={daily} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 5" stroke={chartGrid}/>
@@ -187,7 +187,7 @@ export default function Analytics() {
         </Card>
 
         <Card className="analytics-chart-card">
-          <div className="analytics-chart-heading"><div><span className="eyebrow">FULFILMENT</span><h2>Order status mix</h2><p>Distribution across statuses.</p></div><span className="analytics-heading-icon is-warm"><Activity size={16}/></span></div>
+          <div className="analytics-chart-heading"><div><h2>Order status mix</h2><p>Distribution across statuses.</p></div><span className="analytics-heading-icon is-warm"><Activity size={16}/></span></div>
           <div className="analytics-chart-body analytics-status-chart">
             {isLoading ? <Skeleton className="h-full w-full"/> : failedWithoutData ? <ChartEmptyState>Order data could not be loaded.</ChartEmptyState> : statusMix.length === 0 ? <ChartEmptyState/> : <ResponsiveContainer width="100%" height="100%"><PieChart>
               <Pie data={statusMix} dataKey="value" nameKey="name" innerRadius={48} outerRadius={78} paddingAngle={3} stroke="none">
@@ -201,7 +201,7 @@ export default function Analytics() {
 
       <section className="analytics-chart-grid">
         <Card className="analytics-chart-card">
-          <div className="analytics-chart-heading"><div><span className="eyebrow">MENU PERFORMANCE</span><h2>Top-selling items</h2><p>Ranked by units sold in this period.</p></div><span className="analytics-heading-icon"><Package size={16}/></span></div>
+          <div className="analytics-chart-heading"><div><h2>Top-selling items</h2><p>Ranked by units sold in this period.</p></div><span className="analytics-heading-icon"><Package size={16}/></span></div>
           <div className="analytics-chart-body">
             {isLoading ? <Skeleton className="h-full w-full"/> : failedWithoutData ? <ChartEmptyState>Order data could not be loaded.</ChartEmptyState> : topItems.length === 0 ? <ChartEmptyState/> : <ResponsiveContainer width="100%" height="100%"><BarChart data={topItems} layout="vertical" margin={{ top: 4, right: 15, left: 2, bottom: 0 }}>
               <CartesianGrid horizontal={false} strokeDasharray="3 5" stroke={chartGrid}/>
@@ -214,7 +214,7 @@ export default function Analytics() {
         </Card>
 
         <Card className="analytics-chart-card">
-          <div className="analytics-chart-heading"><div><span className="eyebrow">SERVICE RHYTHM</span><h2>Peak order hours</h2><p>Order counts by local hour.</p></div><span className="analytics-heading-icon is-warm"><Clock3 size={16}/></span></div>
+          <div className="analytics-chart-heading"><div><h2>Peak order hours</h2><p>Order counts by local hour.</p></div><span className="analytics-heading-icon is-warm"><Clock3 size={16}/></span></div>
           <div className="analytics-chart-body">
             {isLoading ? <Skeleton className="h-full w-full"/> : failedWithoutData ? <ChartEmptyState>Order data could not be loaded.</ChartEmptyState> : peakHours.every((row) => row.orders === 0) ? <ChartEmptyState/> : <ResponsiveContainer width="100%" height="100%"><BarChart data={peakHours} margin={{ top: 10, right: 6, left: -15, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 5" stroke={chartGrid}/>

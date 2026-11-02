@@ -1,3 +1,4 @@
+import { QueryError, QueryFreshness } from "@/components/workspace/QueryFeedback";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -52,7 +53,7 @@ export default function Categories() {
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ["categories", restaurantId, page],
     queryFn: () => listCategories({ page, restaurant_id: restaurantId }),
   });
@@ -93,6 +94,7 @@ export default function Categories() {
         </Button>
       </div>
 
+      {data && <QueryFreshness updatedAt={dataUpdatedAt} isFetching={isFetching} isError={isError} onRefresh={() => void refetch()} label="categories" />}
       <Card className="table-card">
         <Table>
           <TableHeader>
@@ -106,7 +108,7 @@ export default function Categories() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isError && !data ? <TableRow><TableCell colSpan={6}><QueryError title="Categories couldn’t be loaded" error={error} onRetry={() => void refetch()} /></TableCell></TableRow> : isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell colSpan={6}>

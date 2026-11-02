@@ -1,3 +1,7 @@
+import { OPERATIONAL_QUERY_OPTIONS } from "@/lib/query-policy";
+import { QueryFreshness } from "@/components/workspace/QueryFeedback";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { lazy, Suspense, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -29,7 +33,7 @@ import {
 } from "@/types/orders";
 import { extractApiError } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { OrderRouteMap } from "@/components/orders/OrderRouteMap";
+const OrderRouteMap = lazy(() => import("@/components/orders/OrderRouteMap").then(module => ({ default: module.OrderRouteMap })));
 
 function money(v: number | string | undefined | null) {
   if (v == null) return "—";
@@ -112,9 +116,11 @@ function destinationAddress(order: Order) {
 
 export default function OrderDetail() {
   const { id } = useParams();
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const orderQ = useQuery({
+    ...OPERATIONAL_QUERY_OPTIONS,
     queryKey: ["order", id],
     queryFn: () => getOrder(id!),
     enabled: !!id,
@@ -145,6 +151,7 @@ export default function OrderDetail() {
   const cancel = useMutation({
     mutationFn: () => updateOrderStatus(orderQ.data!.id, "cancelled"),
     onSuccess: (data) => {
+      setConfirmCancel(false);
       qc.setQueryData<Order>(["order", id], (old) => (old ? { ...old, ...data } : data));
       qc.invalidateQueries({ queryKey: ["order", id] });
       qc.invalidateQueries({ queryKey: ["orders"] });
@@ -167,7 +174,7 @@ export default function OrderDetail() {
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
-  if (orderQ.isError || !orderQ.data)
+  if (!orderQ.data)
     return (
       <div className="page-stack max-w-2xl">
         <Button asChild variant="ghost" size="sm">
@@ -201,6 +208,7 @@ export default function OrderDetail() {
 
   return (
     <div className="page-stack max-w-7xl order-detail-page">
+      <QueryFreshness updatedAt={orderQ.dataUpdatedAt} isFetching={orderQ.isFetching} isError={orderQ.isError} onRefresh={() => void orderQ.refetch()} label="order" />
       <div className="order-detail-breadcrumb">
         <Button asChild variant="ghost" size="sm">
           <Link to="/orders">
@@ -257,7 +265,7 @@ export default function OrderDetail() {
             <Button
               variant="outline"
               className="text-destructive hover:text-destructive"
-              onClick={() => cancel.mutate()}
+              onClick={() => setConfirmCancel(true)}
               disabled={cancel.isPending}
             >
               {cancel.isPending ? (
@@ -305,7 +313,7 @@ export default function OrderDetail() {
           <Card className="order-detail-card">
             <CardHeader className="order-section-heading">
               <div>
-                <p className="eyebrow">PURCHASE</p>
+
                 <CardTitle>Items ordered</CardTitle>
               </div>
               <span className="order-item-count">
@@ -378,7 +386,7 @@ export default function OrderDetail() {
           <Card className="order-detail-card">
             <CardHeader className="order-section-heading">
               <div>
-                <p className="eyebrow">DELIVERY</p>
+
                 <CardTitle>Route & destination</CardTitle>
               </div>
               <span className="order-route-live">
@@ -389,7 +397,7 @@ export default function OrderDetail() {
             <CardContent className="order-map-content">
               {origin && destination ? (
                 <>
-                  <OrderRouteMap origin={origin} destination={destination} />
+                  <Suspense fallback={<div className="order-route-map-placeholder" role="status">Loading delivery map…</div>}><OrderRouteMap origin={origin} destination={destination} /></Suspense>
                   <div className="order-route-summary">
                     <div className="order-route-point">
                       <strong>Pickup</strong>
@@ -426,7 +434,7 @@ export default function OrderDetail() {
           <Card className="order-detail-card">
             <CardHeader className="order-section-heading">
               <div>
-                <p className="eyebrow">CUSTOMER</p>
+
                 <CardTitle>Contact & payment</CardTitle>
               </div>
             </CardHeader>
@@ -484,7 +492,7 @@ export default function OrderDetail() {
                 </>
               ) : (
                 <>
-                  <span className="eyebrow">NEXT STEP</span>
+
                   <strong>
                     {next ? ORDER_STATUS_LABEL[next] : "Review order"}
                   </strong>
@@ -510,6 +518,13 @@ export default function OrderDetail() {
           </Card>
         </aside>
       </div>
+      <AlertDialog open={confirmCancel} onOpenChange={value => { if (!cancel.isPending) setConfirmCancel(value); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Cancel order #{order.id}?</AlertDialogTitle><AlertDialogDescription>This will end the order for {order.customer_name || "this customer"}. You cannot reopen it from the dashboard.</AlertDialogDescription></AlertDialogHeader>
+          {cancel.isError && <p className="form-error" role="alert">{extractApiError(cancel.error)}</p>}
+          <AlertDialogFooter><AlertDialogCancel disabled={cancel.isPending}>Keep order</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={cancel.isPending} onClick={event => { event.preventDefault(); cancel.mutate(); }}>{cancel.isPending ? "Cancelling…" : "Confirm cancellation"}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

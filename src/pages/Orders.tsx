@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
@@ -27,9 +27,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { listOrders } from "@/services/ordersService";
 import { ORDER_STATUSES, type OrderStatus } from "@/types/orders";
-import { extractApiError } from "@/lib/api";
 
-const PAGE_SIZE = 10;
+
+import { OPERATIONAL_QUERY_OPTIONS, pageCount } from "@/lib/query-policy";
+import { QueryError, QueryFreshness } from "@/components/workspace/QueryFeedback";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+
 type Filter = OrderStatus | "all";
 
 function formatMoney(v: number | string | undefined) {
@@ -58,21 +61,20 @@ export default function Orders() {
     setPage(1);
   }, [searchParams]);
 
+  const debouncedSearch = useDebouncedValue(search);
   const query = useQuery({
-    queryKey: ["orders", { page, status, search }],
-    queryFn: () => listOrders({ page, status, search }),
+    ...OPERATIONAL_QUERY_OPTIONS,
+    queryKey: ["orders", { page, status, search: debouncedSearch }],
+    queryFn: () => listOrders({ page, status, search: debouncedSearch }),
     placeholderData: keepPreviousData,
   });
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil((query.data?.count ?? 0) / PAGE_SIZE)),
-    [query.data?.count],
-  );
+  const totalPages = pageCount(query.data?.count);
 
   return (
     <div className="page-stack max-w-7xl orders-page">
       <div className="orders-heading-row">
         <div>
-          <p className="eyebrow">SERVICE OVERVIEW</p>
+
           <h1>Orders</h1>
           <p>
             Track incoming orders, customer details, and fulfillment status.
@@ -91,6 +93,7 @@ export default function Orders() {
           />
         </div>
       </div>
+      <QueryFreshness updatedAt={query.dataUpdatedAt} isFetching={query.isFetching} isError={query.isError} onRefresh={() => void query.refetch()} label="orders" />
       <Tabs
         value={status}
         onValueChange={(v) => {
@@ -98,7 +101,7 @@ export default function Orders() {
           setPage(1);
         }}
       >
-        <TabsList className="orders-status-tabs">
+        <TabsList className="orders-status-tabs justify-start">
           <TabsTrigger value="all">All orders</TabsTrigger>
           {ORDER_STATUSES.map((s) => (
             <TabsTrigger key={s} value={s} className="capitalize">
@@ -110,7 +113,7 @@ export default function Orders() {
       <Card className="orders-table-card">
         <CardHeader className="orders-table-header">
           <div>
-            <p className="eyebrow">LIVE QUEUE</p>
+
             <CardTitle>
               {query.data?.count ?? 0} order
               {(query.data?.count ?? 0) === 1 ? "" : "s"}
@@ -121,12 +124,20 @@ export default function Orders() {
           )}
         </CardHeader>
         <CardContent className="p-0">
-          {query.isError ? (
-            <div className="p-8 text-center text-sm text-destructive">
-              {extractApiError(query.error)}
-            </div>
+          {query.isError && !query.data ? (
+            <QueryError title="Orders couldn’t be loaded" error={query.error} onRetry={() => void query.refetch()} />
           ) : (
-            <div className="orders-table-scroll">
+            <div>
+            <div className="orders-mobile-list" aria-busy={query.isFetching}>
+              {query.isLoading ? <p role="status">Loading orders…</p> : !query.data?.results.length ? <p className="mobile-orders-empty">No orders match these filters.</p> : query.data.results.map(order => (
+                <Link className="mobile-order" key={order.id} to={`/orders/${order.id}`} aria-label={`View order #${order.id}, ${order.status.replace("_", " ")}`}>
+                  <div className="mobile-order-heading"><strong>#{order.id}</strong><OrderStatusBadge status={order.status} /></div>
+                  <div className="mobile-order-customer">{order.customer_name || "Customer"}</div>
+                  <div className="mobile-order-footer"><strong>{formatMoney(order.total_amount ?? order.total_price)}</strong><span>{formatDate(order.placed_at)}</span><ArrowUpRight size={16} aria-hidden="true" /></div>
+                </Link>
+              ))}
+            </div>
+            <div className="orders-table-scroll" aria-busy={query.isFetching}>
               <Table className="orders-table">
                 <TableHeader>
                   <TableRow>
@@ -254,6 +265,7 @@ export default function Orders() {
                   )}
                 </TableBody>
               </Table>
+            </div>
             </div>
           )}
         </CardContent>

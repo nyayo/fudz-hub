@@ -184,7 +184,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: AppSidebarProps) {
       <div className="sidebar-brand-row">
         <div className="brand-full">
           <img className="brand-full-logo" src="/logo.png" alt="FoGo" width={84} height={41} />
-          <small>MARCHANT · OPERATIONS</small>
+          <small>MERCHANT · OPERATIONS</small>
         </div>
         <button ref={closeButtonRef} type="button" className="sidebar-mobile-close" onClick={onNavigate} aria-label="Close navigation"><X size={19} /></button>
       </div>

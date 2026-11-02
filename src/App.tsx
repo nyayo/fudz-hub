@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,26 +7,27 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import Login from "./pages/Login";
-import AdminLogin from "./pages/AdminLogin";
-import ActivateInvitation from "./pages/ActivateInvitation";
-import Dashboard from "./pages/Dashboard";
-import Orders from "./pages/Orders";
-import OrderDetail from "./pages/OrderDetail";
-import Menu from "./pages/Menu";
-import Categories from "./pages/Categories";
-import Promotions from "./pages/Promotions";
-import Settings from "./pages/Settings";
-import Deliveries from "./pages/Deliveries";
-import Reviews from "./pages/Reviews";
-import Analytics from "./pages/Analytics";
-import Staff from "./pages/Staff";
-import Account from "./pages/Account";
-import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminRestaurants from "./pages/AdminRestaurants";
-import AdminUsers from "./pages/AdminUsers";
-import AdminWishlists from "./pages/AdminWishlists";
+const Login = lazy(() => import("./pages/Login"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const ActivateInvitation = lazy(() => import("./pages/ActivateInvitation"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Orders = lazy(() => import("./pages/Orders"));
+const OrderDetail = lazy(() => import("./pages/OrderDetail"));
+const Menu = lazy(() => import("./pages/Menu"));
+const Categories = lazy(() => import("./pages/Categories"));
+const Promotions = lazy(() => import("./pages/Promotions"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Deliveries = lazy(() => import("./pages/Deliveries"));
+const Reviews = lazy(() => import("./pages/Reviews"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Staff = lazy(() => import("./pages/Staff"));
+const Account = lazy(() => import("./pages/Account"));
+const NotificationHelp = lazy(() => import("./pages/NotificationHelp"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminRestaurants = lazy(() => import("./pages/AdminRestaurants"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminWishlists = lazy(() => import("./pages/AdminWishlists"));
 import { useAuth } from "@/contexts/AuthContext";
 
 function HomeRedirect() {
@@ -44,6 +46,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <Suspense fallback={<div className="route-loading" role="status">Loading workspace…</div>}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -70,6 +73,8 @@ const App = () => (
                 <Route path="/reviews" element={<Reviews />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/account" element={<Account />} />
+                <Route path="/help/notifications" element={<NotificationHelp />} />
+                <Route path="/notification-setup.md" element={<Navigate to="/help/notifications" replace />} />
               </Route>
               <Route element={<ProtectedRoute requireRole="owner"><Outlet /></ProtectedRoute>}>
                 <Route path="/menu" element={<Menu />} />
@@ -81,6 +86,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

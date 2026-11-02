@@ -35,13 +35,13 @@ export default function AdminLogin() {
       <div className="auth-shell">
         <section className="auth-brand-panel" aria-label="Fudz Hub platform administration">
           <div className="auth-brand-top"><div className="auth-brand-mark"><UtensilsCrossed size={21} /></div><div className="auth-brand-name"><strong>fudz<span>hub</span></strong><small>PLATFORM ADMINISTRATION</small></div></div>
-          <div className="auth-brand-copy"><span className="auth-eyebrow">Platform control</span><h1>Keep every<br />workspace <span>moving.</span></h1><p>Manage restaurants, users, approvals and operations from one secure platform workspace.</p></div>
+          <div className="auth-brand-copy"><h1>Keep every<br />workspace <span>moving.</span></h1><p>Manage restaurants, users, approvals and operations from one secure platform workspace.</p></div>
           <div className="auth-brand-bottom">© {new Date().getFullYear()} Fudz Hub · Administrator access</div>
         </section>
         <section className="auth-form-panel">
           <div className="auth-form-wrap">
             <div className="auth-mobile-brand"><span className="auth-brand-mark"><UtensilsCrossed size={17} /></span><strong>fudz<span>hub</span></strong></div>
-            <div className="auth-form-heading"><span className="auth-eyebrow">Administrator access</span><h2>Sign in as admin</h2><p>Use the email and password created for your Django superuser account.</p></div>
+            <div className="auth-form-heading"><h2>Sign in as admin</h2><p>Use the email and password created for your Django superuser account.</p></div>
             <form className="auth-form" onSubmit={(event) => { event.preventDefault(); mutation.mutate(); }}>
               <div className="auth-field"><label htmlFor="admin-email">Admin email</label><input id="admin-email" type="email" autoComplete="email" autoFocus value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@fudz.com" required /></div>
               <div className="auth-field"><label htmlFor="admin-password">Password</label><input id="admin-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required /></div>

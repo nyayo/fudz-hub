@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Check, LockKeyhole, Loader2, Monitor, ShieldCheck, UserRound } from "lucide-react";
@@ -19,18 +20,16 @@ export default function Account() {
   const browserPushQ = useQuery({ queryKey: ["browser-push-status"], queryFn: getBrowserPushStatus, refetchOnWindowFocus: true });
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
 
   useEffect(() => {
     if (profileQ.data) {
       setFirstName(profileQ.data.first_name ?? "");
       setLastName(profileQ.data.last_name ?? "");
-      setPhone(profileQ.data.phone ?? "");
     }
   }, [profileQ.data]);
 
   const saveProfile = useMutation({
-    mutationFn: () => updateUserProfile({ first_name: firstName, last_name: lastName, phone }),
+    mutationFn: () => updateUserProfile({ first_name: firstName, last_name: lastName }),
     onSuccess: (next) => { queryClient.setQueryData(["user-profile"], next); toast({ title: "Profile updated" }); },
     onError: (error) => toast({ title: "Couldn't update profile", description: extractApiError(error), variant: "destructive" }),
   });
@@ -73,11 +72,11 @@ export default function Account() {
   const accountType = profileQ.data?.user_type?.replace(/_/g, " ") || "workspace member";
 
   return <div className="page-stack account-page">
-    <header className="page-heading account-page-heading"><div><p className="eyebrow">PROFILE & PREFERENCES</p><h1>Account</h1><p>Keep your personal details current and choose how FoGo Merchant reaches you.</p></div><span className="account-secure-chip"><ShieldCheck size={14}/> Secure sign-in</span></header>
+    <header className="page-heading account-page-heading"><div><h1>Account</h1><p>Keep your personal details current and choose how FoGo Merchant reaches you.</p></div><span className="account-secure-chip"><ShieldCheck size={14}/> Secure sign-in</span></header>
 
     <Card className="account-overview-card">
       <div className="account-overview-avatar" aria-hidden="true">{initials}</div>
-      <div className="account-overview-copy"><span className="eyebrow">YOUR FOGO MARCHANT PROFILE</span><strong>{profileQ.isLoading ? "Loading profile…" : displayName}</strong><span>{profileQ.data?.email || "Email not available"}</span></div>
+      <div className="account-overview-copy"><strong>{profileQ.isLoading ? "Loading profile…" : displayName}</strong><span>{profileQ.data?.email || "Email not available"}</span></div>
       <div className="account-overview-meta"><span className="account-type-pill">{accountType}</span><span><LockKeyhole size={13}/> OTP-protected account</span></div>
     </Card>
     {profileQ.isError && <div className="analytics-data-notice" role="alert">Couldn't load account profile: {extractApiError(profileQ.error)}</div>}
@@ -90,7 +89,7 @@ export default function Account() {
             <div className="grid gap-2"><Label htmlFor="account-first-name">First name</Label><Input id="account-first-name" autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)}/></div>
             <div className="grid gap-2"><Label htmlFor="account-last-name">Last name</Label><Input id="account-last-name" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)}/></div>
             <div className="grid gap-2"><Label htmlFor="account-email">Account email</Label><Input id="account-email" value={profileQ.data?.email ?? ""} readOnly/><p className="text-xs text-muted-foreground">This verified sign-in identity can't be changed here.</p></div>
-            <div className="grid gap-2"><Label htmlFor="account-phone">Phone</Label><Input id="account-phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Add a phone number"/></div>
+            <div className="grid gap-2"><Label htmlFor="account-phone">Phone</Label><Input id="account-phone" type="tel" autoComplete="tel" value={profileQ.data?.phone ?? ""} readOnly aria-describedby="account-phone-help"/><p id="account-phone-help" className="text-xs text-muted-foreground">Phone changes require verification and aren’t available in this workspace.</p></div>
           </div>
           <div className="account-panel-footer"><span>Changes apply to your personal account.</span><Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending || profileQ.isLoading}>{saveProfile.isPending ? <><Loader2 size={15} className="mr-2 animate-spin"/>Saving…</> : <><Check size={15} className="mr-2"/>Save profile</>}</Button></div>
         </CardContent>
@@ -112,7 +111,7 @@ export default function Account() {
         <div className="account-browser-actions">
           {browserPushQ.data && !browserPushQ.data.supported && <p className="account-browser-warning">This browser or connection doesn't support Web Push. Use a supported browser on HTTPS.</p>}
           {browserPushQ.data?.permission === "denied" && <p className="account-browser-warning">Notifications are blocked for this site. Change the browser’s site permission, then retry.</p>}
-          {browserPushQ.data?.supported && !browserPushQ.data.configured && <p className="account-browser-warning">Web Push isn't configured yet. Set the public VAPID key as documented in the setup guide and rebuild the web app.</p>}
+          {browserPushQ.data?.supported && !browserPushQ.data.configured && <p className="account-browser-warning">Browser alerts haven’t been enabled for this workspace. You can still check updates in the notification inbox.</p>}
           <Button variant={browserPushQ.data?.subscribed ? "outline" : "default"} disabled={browserPushQ.isLoading || !browserPushQ.data?.supported || !browserPushQ.data.configured || enableBrowserNotifications.isPending || disableBrowserNotifications.isPending} onClick={() => {
             if (browserPushQ.data?.subscribed) {
               disableBrowserNotifications.mutate();
@@ -128,7 +127,7 @@ export default function Account() {
           </Button>
         </div>
       </CardContent>
-      <div className="account-browser-footer"><a href="/notification-setup.md" target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">Open notification setup guide</a><Button variant="outline" onClick={() => testNotification.mutate()} disabled={testNotification.isPending}>{testNotification.isPending ? "Queuing test…" : "Send test push"}</Button></div>
+      <div className="account-browser-footer"><Link to="/help/notifications" className="text-sm font-medium text-primary hover:underline">Notification help</Link><Button variant="outline" onClick={() => testNotification.mutate()} disabled={testNotification.isPending}>{testNotification.isPending ? "Queuing test…" : "Send test push"}</Button></div>
     </Card>
   </div>;
 }

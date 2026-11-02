@@ -1,3 +1,4 @@
+import { QueryError, QueryFreshness } from "@/components/workspace/QueryFeedback";
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export default function Promotions() {
     ? Number(searchParams.get("restaurant")) || undefined
     : Number(user?.profile?.id ?? 0) || undefined;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ["promotions", restaurantId, search, page],
     queryFn: () => listPromotions({ search, page, restaurant_id: restaurantId }),
   });
@@ -109,8 +110,9 @@ export default function Promotions() {
         </div>
       </Card>
 
+      {data && <QueryFreshness updatedAt={dataUpdatedAt} isFetching={isFetching} isError={isError} onRefresh={() => void refetch()} label="promotions" />}
       <Card className="table-card">
-        {isLoading ? (
+        {isError && !data ? <QueryError title="Promotions couldn’t be loaded" error={error} onRetry={() => void refetch()} /> : isLoading ? (
           <div className="p-6 space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
@@ -162,14 +164,14 @@ export default function Promotions() {
                     >
                       <Upload className="h-4 w-4" />
                     </IconButton>
-                    
+
                     <IconButton
                       label="Edit promotion"
                       onClick={() => { setEditing(p); setDialogOpen(true); }}
                     >
                       <Pencil className="h-4 w-4" />
                     </IconButton>
-                    
+
                     <IconButton
                       label="Delete promotion"
                       onClick={() => setConfirmDelete(p)}

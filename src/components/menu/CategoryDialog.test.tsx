@@ -1,0 +1,21 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { afterEach, expect, it, vi } from 'vitest';
+import { CategoryDialog } from './CategoryDialog';
+import { createCategory } from '@/services/menuService';
+vi.mock('@/services/menuService', () => ({ createCategory: vi.fn(), updateCategory: vi.fn() }));
+vi.mock('@/services/restaurantService', () => ({ uploadCategoryImage: vi.fn() }));
+vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
+it('labels the active switch and submits a valid category through its form', async () => {
+  vi.mocked(createCategory).mockResolvedValue({id:1} as never);
+  const close=vi.fn();
+  render(<QueryClientProvider client={new QueryClient()}><CategoryDialog open onOpenChange={close} /></QueryClientProvider>);
+  expect(screen.getByRole('switch', {name:'Active'})).toBeChecked();
+  const name=screen.getByRole('textbox', {name:'Name'});
+  expect(name).toBeRequired();
+  fireEvent.change(name, {target:{value:'Lunch'}});
+  fireEvent.submit(name.closest('form')!);
+  await waitFor(() => expect(createCategory).toHaveBeenCalledWith(expect.objectContaining({name:'Lunch',is_active:true}),undefined));
+  await waitFor(() => expect(close).toHaveBeenCalledWith(false));
+});

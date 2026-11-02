@@ -1,3 +1,5 @@
+import { OPERATIONAL_QUERY_OPTIONS } from "@/lib/query-policy";
+import { QueryFreshness } from "@/components/workspace/QueryFeedback";
 import { useEffect, useMemo, useState } from "react";
 import {
   keepPreviousData,
@@ -68,6 +70,7 @@ export default function Deliveries() {
   }, [search]);
 
   const query = useQuery({
+    ...OPERATIONAL_QUERY_OPTIONS,
     queryKey: ["deliveries", { page, search: debouncedSearch, status }],
     queryFn: () => listDeliveries({ page, search: debouncedSearch, status }),
     placeholderData: keepPreviousData,
@@ -104,8 +107,8 @@ export default function Deliveries() {
   return (
     <div className="page-stack max-w-7xl deliveries-page">
       <header className="page-heading">
-        <div>
-          <p className="eyebrow">FULFILMENT</p>
+      <div>
+
           <h1>Deliveries</h1>
           <p>Assign couriers and keep every handoff moving.</p>
         </div>
@@ -115,6 +118,7 @@ export default function Deliveries() {
           </span>
         )}
       </header>
+      <QueryFreshness updatedAt={query.dataUpdatedAt} isFetching={query.isFetching} isError={query.isError} onRefresh={() => void query.refetch()} label="deliveries" />
 
       <section className="metric-strip">
         <div className="metric-tile">
@@ -209,7 +213,7 @@ export default function Deliveries() {
               <Skeleton key={index} className="h-12 w-full" />
             ))}
           </div>
-        ) : query.isError ? (
+        ) : query.isError && !query.data ? (
           <div className="empty-state text-destructive">
             {extractApiError(query.error)}
           </div>

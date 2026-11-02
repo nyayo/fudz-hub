@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { QueryError, QueryFreshness } from "@/components/workspace/QueryFeedback";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,31 +73,14 @@ export default function Staff() {
       ? Number(searchParams.get("restaurant")) || null
       : Number(user?.profile?.id ?? 0) || null;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["staff", restaurantId, page],
+  const debouncedSearch = useDebouncedValue(search);
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
+    queryKey: ["staff", restaurantId, page, debouncedSearch],
     queryFn: () =>
-      listStaff({ page, restaurant_id: restaurantId ?? undefined }),
+      listStaff({ page, restaurant_id: restaurantId ?? undefined, search: debouncedSearch }),
   });
 
-  const filtered = useMemo(() => {
-    const list = data?.results ?? [];
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((s) => {
-      const name = staffName(s).toLowerCase();
-      const email = (
-        s.email_display ??
-        s.email ??
-        s.user?.email ??
-        ""
-      ).toLowerCase();
-      return (
-        name.includes(q) ||
-        email.includes(q) ||
-        s.role.toLowerCase().includes(q)
-      );
-    });
-  }, [data, search]);
+  const filtered = data?.results ?? [];
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteStaff(id),
@@ -137,13 +122,15 @@ export default function Staff() {
         </Button>
       </div>
 
+      {data && <QueryFreshness updatedAt={dataUpdatedAt} isFetching={isFetching} isError={isError} onRefresh={() => void refetch()} label="team members" />}
       <Card className="p-4">
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email or role..."
+            aria-label="Search all team members"
+            placeholder="Search all team members…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-9"
           />
         </div>
@@ -161,7 +148,7 @@ export default function Staff() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isError && !data ? <TableRow><TableCell colSpan={5}><QueryError title="Team members couldn’t be loaded" error={error} onRetry={() => void refetch()} /></TableCell></TableRow> : isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell colSpan={5}>

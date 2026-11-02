@@ -1,3 +1,4 @@
+import { FormError } from "@/components/workspace/FormFeedback";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Upload, X } from "lucide-react";
@@ -147,6 +148,7 @@ export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="promotion-dialog-content w-[calc(100vw-2rem)] max-w-4xl">
+        <form className="dialog-form" onSubmit={event => { event.preventDefault(); mutation.mutate(); }}>
         <DialogHeader className="promotion-dialog-header">
           <DialogTitle>{promotion ? "Edit promotion" : "Create a promotion"}</DialogTitle>
           <DialogDescription>Shape the offer, choose its menu items, and give the campaign a visual.</DialogDescription>
@@ -154,15 +156,15 @@ export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }:
 
         <div className="promotion-editor-grid py-2">
           <div className="promotion-fields">
-            <div className="auth-field"><Label htmlFor="promotion-name">Campaign name</Label><Input id="promotion-name" value={form.name} placeholder="Weekend lunch special" onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+            <div className="auth-field"><Label htmlFor="promotion-name">Campaign name</Label><Input id="promotion-name" name="name" required value={form.name} placeholder="Weekend lunch special" onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
             <div className="auth-field"><Label htmlFor="promotion-description">Description</Label><Textarea id="promotion-description" rows={3} value={form.description} placeholder="A short note customers will see" onChange={(event) => setForm({ ...form, description: event.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="auth-field"><Label htmlFor="promotion-discount">Discount (%)</Label><Input id="promotion-discount" type="number" min={0} max={100} value={form.discount} onChange={(event) => setForm({ ...form, discount: Number(event.target.value) })} /></div>
               <div className="auth-field"><Label htmlFor="promotion-active">Visibility</Label><div className="promotion-visibility"><span>{form.is_active ? "Enabled" : "Paused"}</span><Switch id="promotion-active" checked={form.is_active} onCheckedChange={(value) => setForm({ ...form, is_active: value })} /></div></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="auth-field"><Label htmlFor="promotion-start">Starts</Label><Input id="promotion-start" type="datetime-local" value={form.start_date} onChange={(event) => setForm({ ...form, start_date: event.target.value })} /></div>
-              <div className="auth-field"><Label htmlFor="promotion-end">Ends</Label><Input id="promotion-end" type="datetime-local" value={form.end_date} onChange={(event) => setForm({ ...form, end_date: event.target.value })} /></div>
+              <div className="auth-field"><Label htmlFor="promotion-start">Starts</Label><Input id="promotion-start" name="start_date" required type="datetime-local" value={form.start_date} onChange={(event) => setForm({ ...form, start_date: event.target.value })} /></div>
+              <div className="auth-field"><Label htmlFor="promotion-end">Ends</Label><Input id="promotion-end" name="end_date" required min={form.start_date || undefined} type="datetime-local" value={form.end_date} onChange={(event) => setForm({ ...form, end_date: event.target.value })} /></div>
             </div>
             <div className="auth-field"><Label>Menu items in this offer</Label><MenuItemMultiSelect selectedIds={selectedItemIds} onChange={setSelectedItemIds} restaurantId={restaurantId} disabled={mutation.isPending || (!!promotion && attachedQuery.isLoading)} /></div>
           </div>
@@ -184,12 +186,14 @@ export function PromotionDialog({ open, onOpenChange, promotion, restaurantId }:
           </div>
         </div>
 
+        <FormError error={mutation.error} />
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.name.trim() || !form.start_date || !form.end_date}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="submit" disabled={mutation.isPending || !form.name.trim() || !form.start_date || !form.end_date}>
             {mutation.isPending ? "Saving…" : promotion ? "Save changes" : "Create campaign"}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
